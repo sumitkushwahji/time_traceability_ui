@@ -1,2 +1,10 @@
-<p>dashboard works!</p>
-<p>hello</p>
+<app-top-buttons [location]="location"></app-top-buttons>
+
+<div class="flex">
+  <div class="flex-1 p-4">
+    <h1 class="text-2xl font-bold mb-4">Welcome to the Dashboard</h1>
+    <!-- Add dashboard stats/charts here -->
+  </div>
+
+  <app-right-panel [location]="location" class="w-64 border-l bg-white p-4"></app-right-panel>
+</div>
