@@ -1,6 +1,11 @@
-<!-- right-panel.component.html -->
-<div class="ml-4 space-y-2">
-    <button *ngFor="let link of links" class="bg-blue-700 text-white px-4 py-2 rounded w-full" (click)="linkClick.emit(link)">
+
+  <!-- right-panel.component.html -->
+  <div class="flex justify-center flex-wrap gap-5">
+    <button
+      *ngFor="let link of links"
+      [ngClass]="getLinkClass(link)"
+      (click)="onLinkClick(link)"
+    >
       {{ link }}
     </button>
   </div>
