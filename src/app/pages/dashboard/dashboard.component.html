@@ -90,7 +90,7 @@
               <td class="p-2">{{ row.id }}</td>
               <td class="p-2 font-semibold">{{ row.satLetter }}</td>
               <td class="p-2">{{ row.mjd }}</td>
-              <td class="p-2">{{ row.mjdDateTime }}</td>
+              <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata'}}</td>
               <td class="p-2">{{ row.sttime }}</td>
               <td class="p-2">{{ row.source1 }}</td>
               <td class="p-2">{{ row.source2 }}</td>
