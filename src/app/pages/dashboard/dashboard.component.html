@@ -1,2 +1,134 @@
-<p>dashboard works!</p>
-<p>hello</p>
+<app-top-buttons [location]="location"></app-top-buttons>
+
+<!-- Page Layout -->
+<div class="min-h-screen bg-slate-100 p-4">
+  <div class="flex flex-col lg:flex-row gap-4">
+    
+    <!-- Main Panel -->
+    <div class="flex-1 bg-white rounded-2xl shadow-lg p-4 overflow-auto">
+      <h1 class="text-lg font-semibold mb-4 text-slate-700">Welcome to the Dashboard</h1>
+
+      <!-- Search & Page Size Controls -->
+      <div class="flex flex-col md:flex-row justify-between items-center gap-2 mb-4">
+        <input
+          type="text"
+          placeholder="Search Satellite..."
+          [(ngModel)]="searchQuery"
+          class="border rounded px-3 py-1 text-sm w-full md:w-64"
+        />
+
+        <div class="flex items-center gap-2 text-sm">
+          <label for="pageSizeSelect">Rows per page:</label>
+          <select
+            id="pageSizeSelect"
+            [(ngModel)]="pageSize"
+            (change)="onPageSizeChange()"
+            class="border rounded px-2 py-1"
+          >
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }}</option>
+          </select>
+        </div>
+
+        <!-- Export as Dropdown -->
+        <div class="relative">
+          <button
+            class="btn btn-primary dropdown-toggle w-full md:w-auto"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+          >
+            Export as
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+            <li><a class="dropdown-item" (click)="export('csv')">Export CSV</a></li>
+            <li><a class="dropdown-item" (click)="export('json')">Export JSON</a></li>
+            <li><a class="dropdown-item" (click)="export('txt')">Export TXT</a></li>
+            <li><a class="dropdown-item" (click)="export('sql')">Export SQL</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="overflow-x-auto rounded-lg border border-gray-200">
+        <table id="export-table" class="min-w-full text-xs text-slate-800">
+          <thead>
+            <tr class="bg-slate-100 text-slate-600 text-left border-b">
+              <th class="p-2 cursor-pointer" (click)="setSort('id')">
+                ID <span *ngIf="sortColumn === 'id'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('satLetter')">
+                Satellite <span *ngIf="sortColumn === 'satLetter'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('mjd')">
+                MJD <span *ngIf="sortColumn === 'mjd'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('mjdDateTime')">
+                MJD DateTime <span *ngIf="sortColumn === 'mjdDateTime'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('sttime')">
+                ST Time <span *ngIf="sortColumn === 'sttime'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('source1')">
+                Source 1 <span *ngIf="sortColumn === 'source1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('source2')">
+                Source 2 <span *ngIf="sortColumn === 'source2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('avg1')">
+                Avg 1 <span *ngIf="sortColumn === 'avg1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('avg2')">
+                Avg 2 <span *ngIf="sortColumn === 'avg2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+              <th class="p-2 cursor-pointer" (click)="setSort('avgRefsysDifference')">
+                RefSys Diff <span *ngIf="sortColumn === 'avgRefsysDifference'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of data" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
+              <td class="p-2">{{ row.id }}</td>
+              <td class="p-2 font-semibold">{{ row.satLetter }}</td>
+              <td class="p-2">{{ row.mjd }}</td>
+              <td class="p-2">{{ row.mjdDateTime }}</td>
+              <td class="p-2">{{ row.sttime }}</td>
+              <td class="p-2">{{ row.source1 }}</td>
+              <td class="p-2">{{ row.source2 }}</td>
+              <td class="p-2">{{ row.avg1 }}</td>
+              <td class="p-2">{{ row.avg2 }}</td>
+              <td class="p-2">{{ row.avgRefsysDifference }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-4 flex flex-col md:flex-row items-center justify-between text-sm text-gray-600 gap-2">
+        <div>
+          Showing <span class="font-medium">{{ startIndex + 1 }}</span> to
+          <span class="font-medium">{{ endIndex }}</span> of
+          <span class="font-medium">{{ totalItems }}</span> results
+        </div>
+        <div class="space-x-2">
+          <button
+            (click)="previousPage()"
+            class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
+            [disabled]="currentPage === 1"
+          >
+            Previous
+          </button>
+          <button
+            (click)="nextPage()"
+            class="px-3 py-1 bg-gray-100 rounded hover:bg-gray-200"
+            [disabled]="currentPage * pageSize >= totalItems"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel -->
+    <app-right-panel [location]="location" class="w-full lg:w-64 bg-white rounded-2xl shadow p-4"></app-right-panel>
+  </div>
+</div>
