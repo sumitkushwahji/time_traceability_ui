@@ -1,7 +1,12 @@
-<!-- top-buttons.component.html -->
-<div class="flex gap-4 mb-4">
-    <button *ngFor="let btn of buttons" class="bg-green-500 text-white px-4 py-2 rounded" (click)="onClick(btn)">
-      {{ btn }}
-    </button>
-  </div>
-  
+
+   <!-- top-buttons.component.html -->
+<div class="flex justify-center flex-wrap gap-4 mb-4">
+  <button
+    *ngFor="let btn of buttons"
+    class="px-4 py-2 rounded font-medium transition-colors duration-300"
+    [ngClass]="getButtonClass(location)"
+    (click)="onClick(btn)"
+  >
+    {{ btn }}
+  </button>
+</div>
