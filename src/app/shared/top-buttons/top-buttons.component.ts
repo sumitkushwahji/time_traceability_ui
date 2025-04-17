@@ -15,14 +15,6 @@ export class TopButtonsComponent {
 
   ngOnChanges() {
     const buttonMap: { [key: string]: string[] } = {
-      dashboard: ['Start date', 'End date', 'Data View', 'Plot View'],
-      ahmedabad: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-      bangalore: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-      faridabad: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-      bhubaneshwar: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-      guwahati: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-      drc: ['Start date', 'End date', 'Data View', 'Plot View', 'Link Stats'],
-=======
       dashboard: [
         'Start date',
         'End date',
