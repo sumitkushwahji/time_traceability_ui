@@ -11,7 +11,6 @@ export interface SatData {
   id: string;
   satLetter: string;
   mjd: number;
-  commonSattelite: number;
   sttime: string;
   mjdDateTime: string;
   source1: string;
@@ -35,16 +34,13 @@ export interface SatData {
 })
 export class DashboardComponent implements OnInit {
   private searchSubject = new Subject<string>();
-
-  filteredData: any[] = []; // this holds current page data after sorting/filtering
   location = 'dashboard';
   data: SatData[] = [];
   totalItems = 0;
-
+  dropdownOpen = false;
   currentPage = 1;
   pageSize = 10;
   pageSizeOptions = [5, 10, 25, 50, 100];
-
   sortColumn = 'id';
   sortDirection = 'asc';
 
@@ -57,6 +53,9 @@ export class DashboardComponent implements OnInit {
     this.searchSubject.next(value);
   }
 
+  startDate: string = '';
+  endDate: string = '';
+
   constructor(private http: HttpClient, private exportService: ExportService) {}
 
   ngOnInit(): void {
@@ -64,8 +63,7 @@ export class DashboardComponent implements OnInit {
       this.currentPage = 1;
       this.getData();
     });
-
-    this.getData(); // Initial data load
+    this.getData();
   }
 
   getData(): void {
@@ -77,12 +75,30 @@ export class DashboardComponent implements OnInit {
       .set('sortDir', this.sortDirection)
       .set('search', this.searchQuery.trim());
 
+    // Convert startDate and endDate to UTC before sending to the backend
+    if (this.startDate) {
+      this.startDate = this.convertToUTC(this.startDate);
+      params = params.set('startDate', this.startDate);
+    }
+    if (this.endDate) {
+      this.endDate = this.convertToUTC(this.endDate);
+      params = params.set('endDate', this.endDate);
+    }
+
     this.http
       .get<any>('http://localhost:8082/api/data/sat-differences', { params })
       .subscribe((response) => {
         this.data = response.content;
         this.totalItems = response.totalElements;
       });
+  }
+
+  // Convert the date to UTC
+  convertToUTC(dateString: string): string {
+    const localDate = new Date(dateString);
+    return new Date(
+      localDate.getTime() - localDate.getTimezoneOffset() * 60000
+    ).toISOString();
   }
 
   setSort(column: string): void {
@@ -114,6 +130,11 @@ export class DashboardComponent implements OnInit {
     this.getData();
   }
 
+  onDateChange(): void {
+    this.currentPage = 1;
+    this.getData();
+  }
+
   get startIndex(): number {
     return (this.currentPage - 1) * this.pageSize;
   }
@@ -123,27 +144,21 @@ export class DashboardComponent implements OnInit {
     return end > this.totalItems ? this.totalItems : end;
   }
 
-  export(format: string) {
-    switch (format) {
-      case 'csv':
-        this.exportService.exportAsCSV(this.filteredData, 'satellite-data.csv');
-        break;
-      case 'json':
-        this.exportService.exportAsJSON(
-          this.filteredData,
-          'satellite-data.json'
-        );
-        break;
-      case 'txt':
-        this.exportService.exportAsTXT(this.filteredData, 'satellite-data.txt');
-        break;
-      case 'sql':
-        this.exportService.exportAsSQL(
-          this.filteredData,
-          'sat_common_view_difference',
-          'satellite-data.sql'
-        );
-        break;
-    }
+  toggleDropdown(): void {
+    this.dropdownOpen = !this.dropdownOpen;
+  }
+
+  export(format: string): void {
+    const fileName = `dashboard_data.${format}`;
+    const tableName = 'sat_data'; // only used for SQL
+
+    this.exportService.exportTable(
+      this.data,
+      format as 'csv' | 'json' | 'txt' | 'sql',
+      fileName,
+      tableName
+    );
+
+    this.dropdownOpen = false;
   }
 }

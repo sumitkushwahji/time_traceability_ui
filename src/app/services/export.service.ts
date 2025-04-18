@@ -1,4 +1,3 @@
-// src/app/services/export.service.ts
 import { Injectable } from '@angular/core';
 import { saveAs } from 'file-saver';
 
@@ -28,6 +27,34 @@ export class ExportService {
       ', '
     )}) VALUES\n${values.join(',\n')};`;
     this.download(sql, filename, 'text/sql');
+  }
+
+  exportTable(
+    data: any[],
+    type: 'csv' | 'json' | 'txt' | 'sql',
+    filename: string,
+    tableName?: string
+  ) {
+    switch (type) {
+      case 'csv':
+        this.exportAsCSV(data, filename);
+        break;
+      case 'json':
+        this.exportAsJSON(data, filename);
+        break;
+      case 'txt':
+        this.exportAsTXT(data, filename);
+        break;
+      case 'sql':
+        if (!tableName) {
+          console.error('Table name is required for SQL export');
+          return;
+        }
+        this.exportAsSQL(data, tableName, filename);
+        break;
+      default:
+        console.error('Unsupported export type');
+    }
   }
 
   private download(content: string, filename: string, type: string) {
