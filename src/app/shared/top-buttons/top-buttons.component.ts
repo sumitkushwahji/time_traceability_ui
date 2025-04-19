@@ -32,6 +32,8 @@ export class TopButtonsComponent {
       bangalore: [
         'Start date',
         'End date',
+        'Data View',
+        'Plot View',
         'Time Difference',
         'Link stability',
       ],
