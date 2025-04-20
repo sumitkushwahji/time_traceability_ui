@@ -1,5 +1,4 @@
 // src/app/services/sat-data.service.ts
-
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -42,10 +41,10 @@ export class SatDataService {
       .set('search', search.trim());
 
     if (startDate) {
-      params = params.set('startDate', this.convertToUTC(startDate));
+      params = params.set('startDate', this.formatDateOnly(startDate));
     }
     if (endDate) {
-      params = params.set('endDate', this.convertToUTC(endDate));
+      params = params.set('endDate', this.formatDateOnly(endDate));
     }
 
     return this.http.get<{ content: SatData[]; totalElements: number }>(
@@ -54,10 +53,11 @@ export class SatDataService {
     );
   }
 
-  private convertToUTC(dateString: string): string {
-    const localDate = new Date(dateString);
-    return new Date(
-      localDate.getTime() - localDate.getTimezoneOffset() * 60000
-    ).toISOString();
+  private formatDateOnly(dateString: string): string {
+    const d = new Date(dateString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

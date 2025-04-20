@@ -55,13 +55,10 @@ export class DataViewComponent implements OnInit {
     this.getData();
 
     this.data2 = this.mockData();
-    this.dataService.setData(this.data);
 
     this.dateRangeService.dateRange$.subscribe((range) => {
       this.startDate = range.start;
       this.endDate = range.end;
-
-      // You can now use these to fetch or filter data
       this.getData();
     });
   }
@@ -69,7 +66,7 @@ export class DataViewComponent implements OnInit {
   mockData(): any[] {
     const now = new Date();
     return Array.from({ length: 50 }).map((_, i) => ({
-      mjdDateTime: new Date(now.getTime() + i * 60000), // every minute
+      mjdDateTime: new Date(now.getTime() + i * 60000),
       avgRefsysDifference: Math.random() * 10 + 5,
     }));
   }
@@ -90,6 +87,7 @@ export class DataViewComponent implements OnInit {
       .subscribe((response) => {
         this.data = response.content;
         this.totalItems = response.totalElements;
+        this.dataService.setData(this.data); // update shared service with fresh data
       });
   }
 

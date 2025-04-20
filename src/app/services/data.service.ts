@@ -1,16 +1,20 @@
+// src/app/services/data.service.ts
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { SatData } from './sat-data.service';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root',
+})
 export class DataService {
-  private dataSource = new BehaviorSubject<any[]>([]);
-  data$ = this.dataSource.asObservable();
+  private dataSubject = new BehaviorSubject<SatData[]>([]);
+  data$ = this.dataSubject.asObservable();
 
-  setData(data: any[]) {
-    this.dataSource.next(data);
+  setData(data: SatData[]): void {
+    this.dataSubject.next(data);
   }
 
-  getData(): any[] {
-    return this.dataSource.getValue();
+  getData(): SatData[] {
+    return this.dataSubject.getValue();
   }
 }
