@@ -1,26 +1,16 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { Subject, debounceTime } from 'rxjs';
 import { ExportService } from '../../../../services/export.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-
-export interface SatData {
-  id: string;
-  satLetter: string;
-  mjd: number;
-  sttime: string;
-  mjdDateTime: string;
-  source1: string;
-  source2: string;
-  avg1: number;
-  avg2: number;
-  avgRefsysDifference: number;
-}
+import { SatData, SatDataService } from '../../../../services/sat-data.service';
+import { DataService } from '../../../../services/data.service';
+import { DateRangeService } from '../../../../services/date-range.service';
 
 @Component({
   selector: 'app-data-view',
+  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './data-view.component.html',
   styleUrl: './data-view.component.css',
@@ -29,6 +19,7 @@ export class DataViewComponent implements OnInit {
   private searchSubject = new Subject<string>();
   location = 'dashboard';
   data: SatData[] = [];
+  data2: any[] = [];
   totalItems = 0;
   dropdownOpen = false;
   currentPage = 1;
@@ -49,7 +40,12 @@ export class DataViewComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
 
-  constructor(private http: HttpClient, private exportService: ExportService) {}
+  constructor(
+    private satDataService: SatDataService,
+    private exportService: ExportService,
+    private dataService: DataService,
+    private dateRangeService: DateRangeService
+  ) {}
 
   ngOnInit(): void {
     this.searchSubject.pipe(debounceTime(300)).subscribe(() => {
@@ -57,41 +53,44 @@ export class DataViewComponent implements OnInit {
       this.getData();
     });
     this.getData();
+
+    this.data2 = this.mockData();
+    this.dataService.setData(this.data);
+
+    this.dateRangeService.dateRange$.subscribe((range) => {
+      this.startDate = range.start;
+      this.endDate = range.end;
+
+      // You can now use these to fetch or filter data
+      this.getData();
+    });
+  }
+
+  mockData(): any[] {
+    const now = new Date();
+    return Array.from({ length: 50 }).map((_, i) => ({
+      mjdDateTime: new Date(now.getTime() + i * 60000), // every minute
+      avgRefsysDifference: Math.random() * 10 + 5,
+    }));
   }
 
   getData(): void {
     const backendPage = this.currentPage - 1;
-    let params = new HttpParams()
-      .set('page', backendPage.toString())
-      .set('size', this.pageSize.toString())
-      .set('sortBy', this.sortColumn)
-      .set('sortDir', this.sortDirection)
-      .set('search', this.searchQuery.trim());
 
-    // Convert startDate and endDate to UTC before sending to the backend
-    if (this.startDate) {
-      this.startDate = this.convertToUTC(this.startDate);
-      params = params.set('startDate', this.startDate);
-    }
-    if (this.endDate) {
-      this.endDate = this.convertToUTC(this.endDate);
-      params = params.set('endDate', this.endDate);
-    }
-
-    this.http
-      .get<any>('http://localhost:8082/api/data/sat-differences', { params })
+    this.satDataService
+      .getSatData(
+        backendPage,
+        this.pageSize,
+        this.sortColumn,
+        this.sortDirection,
+        this.searchQuery,
+        this.startDate,
+        this.endDate
+      )
       .subscribe((response) => {
         this.data = response.content;
         this.totalItems = response.totalElements;
       });
-  }
-
-  // Convert the date to UTC
-  convertToUTC(dateString: string): string {
-    const localDate = new Date(dateString);
-    return new Date(
-      localDate.getTime() - localDate.getTimezoneOffset() * 60000
-    ).toISOString();
   }
 
   setSort(column: string): void {
@@ -143,7 +142,7 @@ export class DataViewComponent implements OnInit {
 
   export(format: string): void {
     const fileName = `dashboard_data.${format}`;
-    const tableName = 'sat_data'; // only used for SQL
+    const tableName = 'sat_data';
 
     this.exportService.exportTable(
       this.data,
