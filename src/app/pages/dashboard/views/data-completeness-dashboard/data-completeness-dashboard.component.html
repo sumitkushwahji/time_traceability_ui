@@ -1,0 +1,29 @@
+<div class="container mx-auto p-6">
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-2xl font-semibold">Data Completeness Dashboard</h2>
+    <div class="flex items-center">
+      <label for="mjdSelector" class="text-gray-700 text-sm font-bold mr-2">Select MJD:</label>
+      <select
+        id="mjdSelector"
+        class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline text-sm"
+        [(ngModel)]="selectedMjd"
+        (change)="onMjdChange()"
+      >
+        <option *ngFor="let mjd of mjdOptions" [value]="mjd">{{ mjd }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="relative flex-grow">
+    <canvas baseChart
+            class="w-full h-full"
+            [data]="chartData"
+            [options]="chartOptions"
+            [type]="'bar'">
+    </canvas>
+  </div>
+
+  <p class="mt-2 text-sm text-gray-500 text-center">
+    Data updates every {{ updateIntervalSeconds / 60 }} minutes.
+  </p>
+</div>

@@ -17,17 +17,12 @@ export class TopButtonsComponent {
   ngOnChanges() {
     const buttonMap: { [key: string]: string[] } = {
       dashboard: ['Data View', 'Plot View', 'Link Stats'],
-      ahmedabad: ['Time Difference', 'Link stability'],
-      bangalore: [
-        'Data View',
-        'Plot View',
-        'Time Difference',
-        'Link stability',
-      ],
-      faridabad: ['Time Difference', 'Link stability'],
-      bhubaneshwar: ['Time Difference', 'Link stability'],
-      guwahati: ['Time Difference', 'Link stability'],
-      drc: ['Time Difference', 'Link stability'],
+      ahmedabad: ['Data View', 'Plot View', 'Link stability'],
+      bangalore: ['Data View', 'Plot View', 'Link stability'],
+      faridabad: ['Data View', 'Plot View', 'Link stability'],
+      bhubaneshwar: ['Data View', 'Plot View', 'Link stability'],
+      guwahati: ['Data View', 'Plot View', 'Link stability'],
+      drc: ['Data View', 'Plot View', 'Link stability'],
     };
     this.buttons = buttonMap[this.location] || [];
   }

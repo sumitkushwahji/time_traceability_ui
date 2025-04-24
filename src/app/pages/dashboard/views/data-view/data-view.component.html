@@ -50,29 +50,29 @@
       <table id="export-table" class="min-w-full text-xs text-slate-800">
         <thead>
           <tr class="bg-slate-100 text-slate-600 text-left border-b">
-            <th class="p-2 cursor-pointer" (click)="setSort('id')">ID <span *ngIf="sortColumn === 'id'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('satLetter')">Satellite <span *ngIf="sortColumn === 'satLetter'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('id')">ID <span *ngIf="sortColumn === 'id'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('satLetter')">Satellite <span *ngIf="sortColumn === 'satLetter'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
             <th class="p-2 cursor-pointer" (click)="setSort('mjd')">MJD <span *ngIf="sortColumn === 'mjd'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('mjdDateTime')">MJD DateTime <span *ngIf="sortColumn === 'mjdDateTime'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
+            <th class="p-2 cursor-pointer" (click)="setSort('mjdDateTime')">IST Date Time <span *ngIf="sortColumn === 'mjdDateTime'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
             <th class="p-2 cursor-pointer" (click)="setSort('sttime')">ST Time <span *ngIf="sortColumn === 'sttime'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('source1')">Source 1 <span *ngIf="sortColumn === 'source1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('source2')">Source 2 <span *ngIf="sortColumn === 'source2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('avg1')">Avg 1 <span *ngIf="sortColumn === 'avg1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('avg2')">Avg 2 <span *ngIf="sortColumn === 'avg2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('avgRefsysDifference')">RefSys Diff <span *ngIf="sortColumn === 'avgRefsysDifference'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('source1')">Source 1 <span *ngIf="sortColumn === 'source1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('source2')">Source 2 <span *ngIf="sortColumn === 'source2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('avg1')">Avg 1 <span *ngIf="sortColumn === 'avg1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
+            <!-- <th class="p-2 cursor-pointer" (click)="setSort('avg2')">Avg 2 <span *ngIf="sortColumn === 'avg2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th> -->
+            <th class="p-2 cursor-pointer" (click)="setSort('avgRefsysDifference')">CV Diff <span *ngIf="sortColumn === 'avgRefsysDifference'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let row of data" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
-            <td class="p-2">{{ row.id }}</td>
-            <td class="p-2 font-semibold">{{ row.satLetter }}</td>
+            <!-- <td class="p-2">{{ row.id }}</td>
+            <td class="p-2 font-semibold">{{ row.satLetter }}</td> -->
             <td class="p-2">{{ row.mjd }}</td>
             <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
             <td class="p-2">{{ row.sttime }}</td>
-            <td class="p-2">{{ row.source1 }}</td>
+            <!-- <td class="p-2">{{ row.source1 }}</td>
             <td class="p-2">{{ row.source2 }}</td>
             <td class="p-2">{{ row.avg1 }}</td>
-            <td class="p-2">{{ row.avg2 }}</td>
+            <td class="p-2">{{ row.avg2 }}</td> -->
             <td class="p-2">{{ row.avgRefsysDifference }}</td>
           </tr>
         </tbody>

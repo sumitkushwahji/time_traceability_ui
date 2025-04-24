@@ -1,2 +1,9 @@
-<h2 class="text-xl font-semibold">Bangalore Plot View</h2>
-<!-- Your chart here -->
+<div class="p-4">
+    <h2 class="text-xl font-semibold mb-4">RefSys Difference Plot</h2>
+    <canvas baseChart
+            [data]="chartData"
+            [options]="chartOptions"
+            [type]="'line'">
+    </canvas>
+  </div>
+  
