@@ -85,6 +85,46 @@ export class DataCompletenessDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  chartOptions2: ChartOptions<'bar'> = {
+    responsive: true,
+    indexAxis: 'x',
+    scales: {
+      x: {
+        stacked: true,
+        title: {
+          display: true,
+          text: 'Source',
+        },
+      },
+      y: {
+        stacked: true,
+        title: {
+          display: true,
+          text: 'Number of Sessions',
+        },
+      },
+    },
+    plugins: {
+      legend: { display: true, position: 'bottom' },
+      title: {
+        display: true,
+        text: `Data Completeness (MJD: ${this.selectedMjd})`,
+      },
+    },
+  };
+  
+  getPercentage(item: SourceSessionStatus): number {
+    return item.expectedSessionCount
+      ? Math.round((item.currentSessionCount / item.expectedSessionCount) * 100)
+      : 0;
+  }
+  
+  getProgressColor(percent: number): string {
+    if (percent >= 80) return '#38a169'; // green
+    if (percent >= 50) return '#dd6b20'; // orange
+    return '#e53e3e'; // red
+  }
+  
   loadData(mjd: string): void {
     this.dataCompletenessService
       .getSessionCompleteness(mjd)
