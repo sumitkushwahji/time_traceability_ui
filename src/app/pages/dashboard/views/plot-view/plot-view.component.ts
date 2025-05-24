@@ -1,18 +1,19 @@
-// src/app/pages/dashboard/plot-view/plot-view.component.ts
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { ChartData, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
-import { DataService } from '../../../../services/data.service';
-import { SatData } from '../../../../services/sat-data.service';
+import { SatData2, SatDataService } from '../../../../services/sat-data.service';
+
+
 
 @Component({
   selector: 'app-plot-view',
-  standalone: true,
   imports: [CommonModule, NgChartsModule],
   templateUrl: './plot-view.component.html',
+  styleUrl: './plot-view.component.css',
 })
 export class PlotViewComponent implements OnInit {
+  data: SatData2[] = [];
   chartData: ChartData<'line'> = { labels: [], datasets: [] };
   chartOptions: ChartOptions = {
     responsive: true,
@@ -25,21 +26,39 @@ export class PlotViewComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: DataService) {}
+  constructor(private dataService: SatDataService) {}
 
   ngOnInit(): void {
-    const data = this.dataService.getData();
+    this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
+      this.data = data;
 
-    this.chartData = {
-      labels: data.map((d) => new Date(d.mjdDateTime).toLocaleString()),
-      datasets: [
-        {
-          label: 'RefSys Difference',
-          data: data.map((d) => d.avgRefsysDifference),
-          borderColor: 'blue',
-          fill: false,
-        },
-      ],
-    };
+      this.chartData = {
+        labels: this.data.map(d => new Date(d.mjdDateTime).toLocaleString()),
+        datasets: this.buildDatasets(this.data),
+      };
+    });
+  }
+
+  buildDatasets(data: SatData2[]) {
+    const locations = new Set<string>();
+    data.forEach(d => {
+      Object.keys(d.locationDiffs).forEach(loc => locations.add(loc));
+    });
+
+    return Array.from(locations).map(loc => ({
+      label: loc,
+      data: data.map(d => d.locationDiffs[loc] ?? null),
+      fill: false,
+      borderColor: this.getRandomColor(),
+    }));
+  }
+
+  getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for(let i=0; i<6; i++) {
+      color += letters[Math.floor(Math.random()*16)];
+    }
+    return color;
   }
 }

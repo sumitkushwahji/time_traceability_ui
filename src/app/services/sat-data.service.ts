@@ -16,11 +16,22 @@ export interface SatData {
   avgRefsysDifference: number;
 }
 
+export interface SatData2 {
+  satLetter: string;
+  mjd: number;
+  mjdDateTime: string;
+  sttime: string;
+  locationDiffs: {
+    [location: string]: number;
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class SatDataService {
   private readonly baseUrl = 'http://localhost:8082/api/data/sat-differences';
+  private readonly baseUrl2 = 'http://localhost:8082/api/data';
 
   constructor(private http: HttpClient) {}
 
@@ -59,5 +70,36 @@ export class SatDataService {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  getPivotedSatData(
+    startDate?: string,
+    endDate?: string,
+    source1?: string
+  ): Observable<any[]> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+    if (source1) params = params.set('source1', source1);
+
+    return this.http.get<any[]>(
+      `${this.baseUrl2}/sat-differences-pivoted`,
+      { params }
+    );
+  }
+
+  // NEW method: fetch pivoted data typed as SatData2[]
+  getPivotedSatDataForPlot(
+    startDate?: string,
+    endDate?: string
+  ): Observable<SatData2[]> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+
+    return this.http.get<SatData2[]>(
+      `${this.baseUrl2}/sat-differences-pivoted`, // or your specific endpoint
+      { params }
+    );
   }
 }
