@@ -30,8 +30,8 @@ export interface SatData2 {
   providedIn: 'root',
 })
 export class SatDataService {
-  private readonly baseUrl = 'http://localhost:8082/api/data/sat-differences';
-  private readonly baseUrl2 = 'http://localhost:8082/api/data';
+  private readonly baseUrl = 'https://rrsl.bharatsamay.org/time-traceability-service/api/data/sat-differences';
+  private readonly baseUrl2 = 'https://rrsl.bharatsamay.org/time-traceability-service/api/data';
 
   constructor(private http: HttpClient) {}
 
