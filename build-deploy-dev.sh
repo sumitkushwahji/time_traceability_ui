@@ -8,7 +8,9 @@ set -e
 
 # Step 2: Build the Angular app
 echo "Building Angular app..."
-npm run build
+npx ng build --configuration development
+
+
 
 echo "Removing existing target directory if it exists..."
 rm -rf $TARGET_DIR

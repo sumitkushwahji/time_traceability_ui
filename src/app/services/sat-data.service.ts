@@ -2,7 +2,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-
+import { environment } from '../../environments/environment'; // Adjust path if needed
 export interface SatData {
   id: string;
   satLetter: string;
@@ -30,8 +30,8 @@ export interface SatData2 {
   providedIn: 'root',
 })
 export class SatDataService {
-  private readonly baseUrl = 'https://rrsl.bharatsamay.org/time-traceability-service/api/data/sat-differences';
-  private readonly baseUrl2 = 'https://rrsl.bharatsamay.org/time-traceability-service/api/data';
+   private readonly baseUrl = `${environment.apiBaseUrl}/sat-differences`;
+  private readonly baseUrl2 = environment.apiBaseUrl;
 
   constructor(private http: HttpClient) {}
 

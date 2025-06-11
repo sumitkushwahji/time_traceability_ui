@@ -34,28 +34,30 @@
   </div>
 
   <!-- Pivoted Table -->
-  <div class="overflow-x-auto rounded-lg border border-gray-200">
-    <table id="export-table" class="min-w-full text-xs text-slate-800">
-      <thead>
-        <tr class="bg-slate-100 text-slate-600 text-left border-b">
-          <th class="p-2">Satellite</th>
-          <th class="p-2">MJD</th>
-          <th class="p-2">MJD DateTime</th>
-          <th class="p-2">STTime</th>
-          <th *ngFor="let sat of satelliteList" class="p-2 text-center">{{ sat }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of pivotedData" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
-          <td class="p-2 font-semibold">{{ row.satLetter }}</td>
-          <td class="p-2">{{ row.mjd }}</td>
-          <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
-          <td class="p-2">{{ row.sttime }}</td>
-          <td *ngFor="let sat of satelliteList" class="p-2 text-center">
-            {{ row.locationDiffs[sat] ?? '-' }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+<div class="overflow-x-auto max-h-[50vh] overflow-y-auto rounded-lg border border-gray-200">
+  <table id="export-table" class="min-w-full text-xs text-slate-800">
+    <thead>
+      <tr class="bg-slate-100 text-slate-600 text-left border-b">
+        <th class="p-2">Satellite</th>
+        <th class="p-2">MJD</th>
+        <th class="p-2">MJD DateTime</th>
+        <th class="p-2">STTime</th>
+        <th *ngFor="let sat of satelliteList" class="p-2 text-center">{{ sat }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of pivotedData" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
+        <td class="p-2 font-semibold">{{ row.satLetter }}</td>
+        <td class="p-2">{{ row.mjd }}</td>
+        <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
+        <td class="p-2">{{ row.sttime }}</td>
+        <td *ngFor="let sat of satelliteList" class="p-2 text-center">
+          {{ row.locationDiffs[sat] ?? '-' }}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+
 </div>

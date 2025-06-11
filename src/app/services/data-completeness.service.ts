@@ -15,7 +15,7 @@ interface SourceSessionStatus {
   providedIn: 'root',
 })
 export class DataCompletenessService {
-  private apiUrl = environment.apiUrl; // Get the base API URL
+  private apiUrl = environment.apiBaseUrl; // Get the base API URL
 
   constructor(private http: HttpClient) {}
 

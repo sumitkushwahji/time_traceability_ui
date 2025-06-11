@@ -11,7 +11,7 @@ const routes: Routes = [
     path: '',
     component: DashboardComponent,
     children: [
-      { path: '', redirectTo: 'data-view', pathMatch: 'full' },
+      { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       { path: 'data-view', component: DataViewComponent },
       { path: 'plot-view', component: PlotViewComponent },
       {

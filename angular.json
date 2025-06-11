@@ -30,7 +30,9 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": ["node_modules/file-saver/dist/FileSaver.min.js"],
+            "scripts": [
+              "node_modules/file-saver/dist/FileSaver.min.js"
+            ],
             "server": "src/main.server.ts",
             "outputMode": "server",
             "ssr": {
@@ -39,6 +41,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -63,9 +71,9 @@
         },
         "serve": {
           "options": {
-              "host": "0.0.0.0",
-              "disableHostCheck": true
-            },
+            "host": "0.0.0.0",
+            "disableHostCheck": true
+          },
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
@@ -98,7 +106,9 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": [ "node_modules/file-saver/dist/FileSaver.js"]
+            "scripts": [
+              "node_modules/file-saver/dist/FileSaver.js"
+            ]
           }
         }
       }

@@ -8,7 +8,8 @@ set -e
 
 # Step 2: Build the Angular app
 echo "Building Angular app..."
-npm run build
+npm run build -- --configuration=production
+
 
 echo "Transferring UI build files to the remote server..."
 scp -r dist/time_traceability_ui/* npl@192.168.251.111:/home/npl/code/nginx-data/time_traceability_ui/
