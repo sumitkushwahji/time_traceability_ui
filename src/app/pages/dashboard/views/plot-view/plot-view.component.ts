@@ -50,18 +50,29 @@ export class PlotViewComponent implements OnInit {
   }
 
   buildDatasets(data: SatData2[]) {
-    const allLocations = new Set<string>();
-    data.forEach(d => {
-      Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
-    });
+  const allLocations = new Set<string>();
+  data.forEach(d => {
+    Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
+  });
 
-    return Array.from(allLocations).map(loc => ({
+  return Array.from(allLocations).map(loc => {
+    const color = this.getRandomColor();  // Generate one color for this dataset
+
+    return {
       label: loc,
       data: data.map(d => d.locationDiffs[loc] ?? null),
+      borderColor: color,               // Line color
+      backgroundColor: color,           // Point fill color
+      pointBorderColor: color,          // Point border
+      pointBackgroundColor: color,      // Point fill
+      pointRadius: 4,
+      pointHoverRadius: 6,
       fill: false,
-      borderColor: this.getRandomColor(),
-    }));
-  }
+      tension: 0.3,
+    };
+  });
+}
+
 
   getRandomColor() {
     const letters = '0123456789ABCDEF';

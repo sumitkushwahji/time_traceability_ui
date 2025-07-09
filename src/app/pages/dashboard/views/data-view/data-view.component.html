@@ -46,15 +46,18 @@
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let row of pivotedData" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
-        <td class="p-2 font-semibold">{{ row.satLetter }}</td>
-        <td class="p-2">{{ row.mjd }}</td>
-        <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
-        <td class="p-2">{{ row.sttime }}</td>
-        <td *ngFor="let sat of satelliteList" class="p-2 text-center">
-          {{ row.locationDiffs[sat] ?? '-' }}
-        </td>
-      </tr>
+      
+  <tr *ngFor="let row of filteredData" class="hover:bg-slate-100 odd:bg-white even:bg-gray-50 border-b">
+    <td class="p-2 font-semibold">{{ row.satLetter }}</td>
+    <td class="p-2">{{ row.mjd }}</td>
+    <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
+    <td class="p-2">{{ row.sttime }}</td>
+    <td *ngFor="let sat of satelliteList" class="p-2 text-center">
+      {{ row.locationDiffs[sat] ?? '-' }}
+    </td>
+  </tr>
+
+
     </tbody>
   </table>
 </div>

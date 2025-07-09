@@ -62,9 +62,23 @@ export class RightPanelComponent {
     return `${base} ${colorClass}`;
   }
 
+  // onLinkClick(link: string) {
+  //   this.selectedLink = link;
+  //   const formatted = link.toLowerCase().replace(/ /g, '-');
+  //   this.linkClick.emit(formatted);
+  // }
+
   onLinkClick(link: string) {
-    this.selectedLink = link;
-    const formatted = link.toLowerCase().replace(/ /g, '-');
-    this.linkClick.emit(formatted);
-  }
+  this.selectedLink = link;
+
+  const linkToFilterMap: { [key: string]: string } = {
+    'NavIC Link': 'NAVIC',
+    'GPS Link': 'GPS',
+    'Glonass Link': 'GLONASS',
+    'All Links': 'ALL'
+  };
+
+  const filter = linkToFilterMap[link] || 'ALL';
+  this.linkClick.emit(filter); // Emits 'N', 'G', 'R', or 'ALL'
+}
 }

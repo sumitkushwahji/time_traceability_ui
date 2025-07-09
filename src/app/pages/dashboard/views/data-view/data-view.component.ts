@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SatDataService } from '../../../../services/sat-data.service';
+import { FilterService } from '../../../../services/filter.service';
 
 @Component({
   selector: 'app-data-view',
@@ -16,33 +17,54 @@ export class DataViewComponent implements OnInit {
   endDate?: string;
   selectedSource: string = '';
   pivotedData: any[] = [];
+  filteredData: any[] = []; // <--- this is the filtered version shown in table
   satelliteList: string[] = [];
-  dropdownOpen: boolean = false;  // controls export dropdown visibility
+  dropdownOpen: boolean = false;
 
-  constructor(private satDataService: SatDataService) {}
+  constructor(
+    private satDataService: SatDataService,
+    private filterService: FilterService
+  ) {}
 
   ngOnInit(): void {
     this.fetchPivotedData();
+
+    // Subscribe to filter changes (NAVIC, GPS, GLONASS, ALL)
+    this.filterService.filter$.subscribe((filterValue: string) => {
+      this.applyFilter(filterValue);
+    });
   }
 
   fetchPivotedData(): void {
-    this.satDataService.getPivotedSatData(this.startDate, this.endDate, this.selectedSource).subscribe(
-      (data) => {
-        console.log(data);
-        this.pivotedData = data;
-        this.satelliteList = this.extractUniqueSatellites(data);
-      },
-      (err) => {
-        console.error('Error fetching pivoted data:', err);
-      }
-    );
+    this.satDataService
+      .getPivotedSatData(this.startDate, this.endDate, this.selectedSource)
+      .subscribe(
+        (data) => {
+          this.pivotedData = data;
+          this.filteredData = data; // default
+          this.satelliteList = this.extractUniqueSatellites(data);
+        },
+        (err) => {
+          console.error('Error fetching pivoted data:', err);
+        }
+      );
+  }
+
+  applyFilter(filter: string): void {
+    if (filter === 'ALL') {
+      this.filteredData = this.pivotedData;
+    } else {
+      this.filteredData = this.pivotedData.filter(
+        (row) => row.satLetter?.toUpperCase() === filter
+      );
+    }
   }
 
   extractUniqueSatellites(data: any[]): string[] {
     const set = new Set<string>();
-    data.forEach(row => {
+    data.forEach((row) => {
       if (row.locationDiffs) {
-        Object.keys(row.locationDiffs).forEach(key => {
+        Object.keys(row.locationDiffs).forEach((key) => {
           set.add(key);
         });
       }
@@ -51,7 +73,7 @@ export class DataViewComponent implements OnInit {
   }
 
   export(format: string): void {
-    this.dropdownOpen = false; // close dropdown on export click
+    this.dropdownOpen = false;
 
     switch (format) {
       case 'csv':
@@ -77,18 +99,15 @@ export class DataViewComponent implements OnInit {
   }
 
   private exportJSON(): void {
-    // Simple JSON export example
-    const jsonStr = JSON.stringify(this.pivotedData, null, 2);
+    const jsonStr = JSON.stringify(this.filteredData, null, 2);
     this.downloadFile(jsonStr, 'data.json', 'application/json');
   }
 
   private exportTXT(): void {
-    // TODO: implement TXT export logic here (e.g., tab separated values)
     console.log('Export TXT triggered');
   }
 
   private exportSQL(): void {
-    // TODO: implement SQL export logic here
     console.log('Export SQL triggered');
   }
 
