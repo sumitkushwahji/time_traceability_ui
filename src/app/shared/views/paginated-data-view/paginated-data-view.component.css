@@ -1,0 +1,42 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+  .export-button {
+    background-color: #007bff;
+    color: white;
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .export-button:hover {
+    background-color: #0056b3;
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 10;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    list-style-type: none;
+    padding: 0;
+    margin: 4px 0 0 0;
+    width: 160px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .dropdown-menu li {
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  .dropdown-menu li:hover {
+    background-color: #f0f0f0;
+  }

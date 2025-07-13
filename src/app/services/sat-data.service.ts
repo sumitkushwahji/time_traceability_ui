@@ -65,6 +65,40 @@ export class SatDataService {
     );
   }
 
+  // NEW method: get paginated SatData for a specific identifier
+  getPaginatedSatDataByIdentifier( // Renamed for clarity
+    identifier: string, // e.g., 'bangalore', 'ahmedabad'
+    page: number,
+    size: number,
+    sortBy: string,
+    sortDir: string,
+    search: string,
+    startDate?: string,
+    endDate?: string
+  ): Observable<{ content: SatData[]; totalElements: number }> {
+    let params = new HttpParams()
+      .set('identifier', identifier) // Add identifier to params
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDir', sortDir)
+      .set('search', search.trim());
+
+    if (startDate) {
+      params = params.set('startDate', this.formatDateOnly(startDate));
+    }
+    if (endDate) {
+      params = params.set('endDate', this.formatDateOnly(endDate));
+    }
+
+    // Assuming the same base URL for paginated data, but filtered by identifier
+    return this.http.get<{ content: SatData[]; totalElements: number }>(
+      this.baseUrl,
+      { params }
+    );
+  }
+
+
   private formatDateOnly(dateString: string): string {
     const d = new Date(dateString);
     const year = d.getFullYear();
@@ -101,8 +135,6 @@ export class SatDataService {
     if (endDate) params = params.set('endDate', endDate);
     if (source1) params = params.set('source1', source1);
 
-    // Assuming the same endpoint can filter by 'identifier' or you might have a different one
-    // e.g., `${this.baseUrl2}/sat-differences-pivoted-by-city`
     return this.http.get<any[]>(
       `${this.baseUrl2}/sat-differences-pivoted`, // Use your actual endpoint
       { params }

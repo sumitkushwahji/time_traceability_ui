@@ -1,22 +1,21 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { DataViewComponent } from './data-view/data-view.component';
-import { PlotViewComponent } from './plot-view/plot-view.component'; // Import the moved PlotViewComponent
+import { DataViewComponent } from './data-view/data-view.component'; // This is now the pivoted view
+import { PlotViewComponent } from './plot-view/plot-view.component';
+import { PaginatedDataViewComponent } from './paginated-data-view/paginated-data-view.component'; // Import the new paginated component
 
 @NgModule({
-  // Standalone components are NOT declared in modules.
-  // They are imported into the `imports` array of other modules/standalone components.
-  declarations: [
-    // DataViewComponent and PlotViewComponent are standalone, so they are imported, not declared here.
-  ],
+  declarations: [], // Standalone components are imported, not declared
   imports: [
     CommonModule,
-    DataViewComponent, // Import DataViewComponent directly here as it's standalone
-    PlotViewComponent  // Import PlotViewComponent directly here as it's standalone
+    DataViewComponent, // Import the pivoted DataViewComponent
+    PlotViewComponent,  // Import the PlotViewComponent
+    PaginatedDataViewComponent // Import the new PaginatedDataViewComponent
   ],
   exports: [
-    DataViewComponent, // Export DataViewComponent to make it available to other modules
-    PlotViewComponent  // Export PlotViewComponent to make it available to other modules
+    DataViewComponent, // Export the pivoted DataViewComponent
+    PlotViewComponent,  // Export the PlotViewComponent
+    PaginatedDataViewComponent // Export the PaginatedDataViewComponent
   ]
 })
 export class SharedViewsModule { }

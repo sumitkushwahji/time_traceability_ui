@@ -1,24 +1,26 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { Subject, debounceTime } from 'rxjs';
-import { DataService } from '../../../../services/data.service';
-import { DateRangeService } from '../../../../services/date-range.service';
-import { ExportService } from '../../../../services/export.service';
-import { SatData, SatDataService } from '../../../../services/sat-data.service';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { DataService } from '../../../services/data.service';
+import { DateRangeService } from '../../../services/date-range.service';
+import { ExportService } from '../../../services/export.service';
+import { SatData, SatDataService } from '../../../services/sat-data.service';
 
 @Component({
-  selector: 'app-data-view',
+  selector: 'app-paginated-data-view',
+  standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './data-view.component.html',
-  styleUrl: './data-view.component.css',
+  templateUrl: './paginated-data-view.component.html',
+  styleUrl: './paginated-data-view.component.css',
 })
-export class DataViewComponent implements OnInit {
+export class PaginatedDataViewComponent implements OnInit {
+  @Input() dataIdentifier?: string; // Input for city-specific data (e.g., 'bangalore')
+
   private searchSubject = new Subject<string>();
-  location = 'dashboard';
-  data: SatData[] = [];
-  data2: any[] = [];
+  data: SatData[] = []; // This will hold the paginated data
   totalItems = 0;
   dropdownOpen = false;
   currentPage = 1;
@@ -53,41 +55,63 @@ export class DataViewComponent implements OnInit {
     });
     this.getData();
 
-    this.data2 = this.mockData();
-
     this.dateRangeService.dateRange$.subscribe((range) => {
       this.startDate = range.start;
       this.endDate = range.end;
+      this.currentPage = 1; // Reset page on date change
       this.getData();
     });
-  }
-
-  mockData(): any[] {
-    const now = new Date();
-    return Array.from({ length: 50 }).map((_, i) => ({
-      mjdDateTime: new Date(now.getTime() + i * 60000),
-      avgRefsysDifference: Math.random() * 10 + 5,
-    }));
   }
 
   getData(): void {
     const backendPage = this.currentPage - 1;
 
-    this.satDataService
-      .getSatData(
-        backendPage,
-        this.pageSize,
-        this.sortColumn,
-        this.sortDirection,
-        this.searchQuery,
-        this.startDate,
-        this.endDate
-      )
-      .subscribe((response) => {
-        this.data = response.content;
-        this.totalItems = response.totalElements;
-        this.dataService.setData(this.data); // update shared service with fresh data
-      });
+    if (this.dataIdentifier) {
+      // Fetch paginated data for a specific identifier (e.g., city)
+      this.satDataService
+        .getPaginatedSatDataByIdentifier( // Corrected method name
+          this.dataIdentifier,
+          backendPage,
+          this.pageSize,
+          this.sortColumn,
+          this.sortDirection,
+          this.searchQuery,
+          this.startDate,
+          this.endDate
+        )
+        .subscribe(
+          (response: { content: SatData[]; totalElements: number }) => { // Explicit type
+            this.data = response.content;
+            this.totalItems = response.totalElements;
+            this.dataService.setData(this.data);
+          },
+          (error: any) => { // Explicit type
+            console.error(`Error fetching paginated data for ${this.dataIdentifier}:`, error);
+          }
+        );
+    } else {
+      // Fallback or default behavior if no identifier is provided
+      this.satDataService
+        .getSatData(
+          backendPage,
+          this.pageSize,
+          this.sortColumn,
+          this.sortDirection,
+          this.searchQuery,
+          this.startDate,
+          this.endDate
+        )
+        .subscribe(
+          (response: { content: SatData[]; totalElements: number }) => { // Explicit type
+            this.data = response.content;
+            this.totalItems = response.totalElements;
+            this.dataService.setData(this.data);
+          },
+          (error: any) => { // Explicit type
+            console.error('Error fetching general paginated data:', error);
+          }
+        );
+    }
   }
 
   setSort(column: string): void {
@@ -138,7 +162,8 @@ export class DataViewComponent implements OnInit {
   }
 
   export(format: string): void {
-    const fileName = `dashboard_data.${format}`;
+    this.dropdownOpen = false;
+    const fileName = `data.${format}`;
     const tableName = 'sat_data';
 
     this.exportService.exportTable(
@@ -147,7 +172,5 @@ export class DataViewComponent implements OnInit {
       fileName,
       tableName
     );
-
-    this.dropdownOpen = false;
   }
 }
