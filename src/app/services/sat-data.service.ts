@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment'; // Adjust path if needed
+
 export interface SatData {
   id: string;
   satLetter: string;
@@ -31,7 +32,7 @@ export interface SatData2 {
 })
 export class SatDataService {
    private readonly baseUrl = `${environment.apiBaseUrl}/sat-differences`;
-  private readonly baseUrl2 = environment.apiBaseUrl;
+  private readonly baseUrl2 = environment.apiBaseUrl; // Often used for common base URL
 
   constructor(private http: HttpClient) {}
 
@@ -88,17 +89,41 @@ export class SatDataService {
     );
   }
 
-  // NEW method: fetch pivoted data typed as SatData2[]
+  // NEW method: fetch pivoted data for a specific identifier (e.g., city)
+  getPivotedSatDataByIdentifier(
+    identifier: string, // e.g., 'ahmedabad', 'bangalore'
+    startDate?: string,
+    endDate?: string,
+    source1?: string
+  ): Observable<any[]> {
+    let params = new HttpParams().set('identifier', identifier); // Add identifier to params
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+    if (source1) params = params.set('source1', source1);
+
+    // Assuming the same endpoint can filter by 'identifier' or you might have a different one
+    // e.g., `${this.baseUrl2}/sat-differences-pivoted-by-city`
+    return this.http.get<any[]>(
+      `${this.baseUrl2}/sat-differences-pivoted`, // Use your actual endpoint
+      { params }
+    );
+  }
+
+
+  // NEW method: fetch pivoted data typed as SatData2[] for plot, potentially for a specific identifier
+  // Renamed to be more generic, and added identifier parameter
   getPivotedSatDataForPlot(
+    identifier?: string, // Optional identifier for plot data
     startDate?: string,
     endDate?: string
   ): Observable<SatData2[]> {
     let params = new HttpParams();
+    if (identifier) params = params.set('identifier', identifier); // Add identifier if provided
     if (startDate) params = params.set('startDate', startDate);
-    if (endDate) params = params.set('endDate', endDate);
+    if (endDate) params = params = params.set('endDate', endDate);
 
     return this.http.get<SatData2[]>(
-      `${this.baseUrl2}/sat-differences-pivoted`, // or your specific endpoint
+      `${this.baseUrl2}/sat-differences-pivoted`, // Use your actual endpoint for plot data
       { params }
     );
   }

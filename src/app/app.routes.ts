@@ -67,6 +67,11 @@ export const routes: Routes = [
         loadChildren: () =>
           import('./pages/drc/drc.module').then((m) => m.DrcModule),
       },
+      {
+        path: 'shared',
+        loadChildren: () =>
+          import('./shared/views/shared-views.module').then((m) => m.SharedViewsModule),
+      },
     ],
   },
 ];

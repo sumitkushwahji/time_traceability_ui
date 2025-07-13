@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { SatDataService } from '../../../../services/sat-data.service';
-import { FilterService } from '../../../../services/filter.service';
+import { FilterService } from '../../../services/filter.service';
+import { SatDataService } from '../../../services/sat-data.service';
 
 @Component({
   selector: 'app-data-view',
@@ -13,11 +13,15 @@ import { FilterService } from '../../../../services/filter.service';
   styleUrls: ['./data-view.component.css'],
 })
 export class DataViewComponent implements OnInit {
+  // 'all' for dashboard-like views (aggregated data), 'specific' for city-specific views.
+  @Input() dataType: 'all' | 'specific' = 'all';
+  @Input() dataIdentifier?: string; // e.g., city name if dataType is 'specific'
+
   startDate?: string;
   endDate?: string;
   selectedSource: string = '';
   pivotedData: any[] = [];
-  filteredData: any[] = []; // <--- this is the filtered version shown in table
+  filteredData: any[] = [];
   satelliteList: string[] = [];
   dropdownOpen: boolean = false;
 
@@ -29,25 +33,46 @@ export class DataViewComponent implements OnInit {
   ngOnInit(): void {
     this.fetchPivotedData();
 
-    // Subscribe to filter changes (NAVIC, GPS, GLONASS, ALL)
     this.filterService.filter$.subscribe((filterValue: string) => {
       this.applyFilter(filterValue);
     });
   }
 
   fetchPivotedData(): void {
-    this.satDataService
-      .getPivotedSatData(this.startDate, this.endDate, this.selectedSource)
-      .subscribe(
-        (data) => {
-          this.pivotedData = data;
-          this.filteredData = data; // default
-          this.satelliteList = this.extractUniqueSatellites(data);
-        },
-        (err) => {
-          console.error('Error fetching pivoted data:', err);
-        }
-      );
+    if (this.dataType === 'all') {
+      // This is for the dashboard or any view needing aggregated data
+      this.satDataService
+        .getPivotedSatData(this.startDate, this.endDate, this.selectedSource)
+        .subscribe(
+          (data) => {
+            this.pivotedData = data;
+            this.filteredData = data;
+            this.satelliteList = this.extractUniqueSatellites(data);
+          },
+          (err) => {
+            console.error('Error fetching aggregated pivoted data:', err);
+          }
+        );
+    } else if (this.dataType === 'specific' && this.dataIdentifier) {
+      // This will be for city-specific pages, using the new service method
+      this.satDataService
+        .getPivotedSatDataByIdentifier(this.dataIdentifier, this.startDate, this.endDate, this.selectedSource)
+        .subscribe(
+          (data) => {
+            this.pivotedData = data;
+            this.filteredData = data;
+            this.satelliteList = this.extractUniqueSatellites(data);
+          },
+          (err) => {
+            console.error(`Error fetching specific pivoted data for ${this.dataIdentifier}:`, err);
+          }
+        );
+    } else {
+      console.warn('DataViewComponent: dataType or dataIdentifier not properly set. Defaulting to "all".');
+      // Fallback to 'all' data if inputs are not set correctly for 'specific' type
+      this.dataType = 'all';
+      this.fetchPivotedData();
+    }
   }
 
   applyFilter(filter: string): void {
@@ -94,8 +119,8 @@ export class DataViewComponent implements OnInit {
   }
 
   private exportCSV(): void {
-    // TODO: implement CSV export logic here
     console.log('Export CSV triggered');
+    // TODO: implement CSV export logic here
   }
 
   private exportJSON(): void {

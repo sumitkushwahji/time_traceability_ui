@@ -1,9 +1,10 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, OnInit, PLATFORM_ID, Input } from '@angular/core'; // Added Input
 import { ChartData, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
-import { SatData2, SatDataService } from '../../../../services/sat-data.service';
+
 import { FormsModule } from '@angular/forms';
+import { SatData2, SatDataService } from '../../../services/sat-data.service';
 
 @Component({
   selector: 'app-plot-view',
@@ -13,6 +14,10 @@ import { FormsModule } from '@angular/forms';
   styleUrl: './plot-view.component.css',
 })
 export class PlotViewComponent implements OnInit {
+  // 'all' for dashboard-like views (aggregated data), 'specific' for city-specific views.
+  @Input() dataType: 'all' | 'specific' = 'all';
+  @Input() dataIdentifier?: string; // e.g., city name if dataType is 'specific'
+
   rawData: SatData2[] = [];
   chartData: ChartData<'line'> = { labels: [], datasets: [] };
 
@@ -41,10 +46,26 @@ export class PlotViewComponent implements OnInit {
 
   ngOnInit(): void {
     if (this.isBrowser) {
+      this.fetchPlotData();
+    }
+  }
+
+  fetchPlotData(): void {
+    if (this.dataType === 'all') {
       this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
         this.rawData = data;
         this.updateChartData();
       });
+    } else if (this.dataType === 'specific' && this.dataIdentifier) {
+      this.dataService.getPivotedSatDataForPlot(this.dataIdentifier).subscribe((data) => {
+        this.rawData = data;
+        this.updateChartData();
+      });
+    } else {
+      console.warn('PlotViewComponent: dataType or dataIdentifier not properly set. Defaulting to "all".');
+      // Fallback to 'all' data if inputs are not set correctly for 'specific' type
+      this.dataType = 'all';
+      this.fetchPlotData();
     }
   }
 
