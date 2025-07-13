@@ -1,8 +1,9 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DrcComponent } from './drc.component';
-import { DataViewComponent } from '../drc/views/data-view/data-view.component';
-import { PlotViewComponent } from '../drc/views/plot-view/plot-view.component';
+// Import the shared components
+import { PaginatedDataViewComponent } from '../../shared/views/paginated-data-view/paginated-data-view.component';
+import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
 
 const routes: Routes = [
   {
@@ -10,8 +11,18 @@ const routes: Routes = [
     component: DrcComponent,
     children: [
       { path: '', redirectTo: 'data-view', pathMatch: 'full' },
-      { path: 'data-view', component: DataViewComponent },
-      { path: 'plot-view', component: PlotViewComponent },
+      // Use the shared PaginatedDataViewComponent for DRC's data view
+      {
+        path: 'data-view',
+        component: PaginatedDataViewComponent,
+        data: { dataIdentifier: 'drc' }, // Pass 'drc' as identifier
+      },
+      // Use the shared PlotViewComponent for DRC's plot view
+      {
+        path: 'plot-view',
+        component: PlotViewComponent,
+        data: { dataType: 'specific', dataIdentifier: 'drc' }, // Pass 'drc' as identifier
+      },
     ],
   },
 ];

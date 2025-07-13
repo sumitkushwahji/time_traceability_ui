@@ -5,19 +5,19 @@ import { RouterModule } from '@angular/router';
 import { AhmedabadRoutingModule } from './ahmedabad-routing.module';
 import { TopButtonsComponent } from '../../shared/top-buttons/top-buttons.component';
 import { RightPanelComponent } from '../../shared/right-panel/right-panel.component';
-
 import { AhmedabadComponent } from './ahmedabad.component';
-
+import { SharedViewsModule } from '../../shared/views/shared-views.module'; // Import SharedViewsModule
 
 @NgModule({
-  declarations: [],
+  declarations: [], // AhmedabadComponent is standalone, so it's imported, not declared.
   imports: [
     CommonModule,
     AhmedabadRoutingModule,
     RouterModule,
     TopButtonsComponent,
     RightPanelComponent,
-    AhmedabadComponent,
+    AhmedabadComponent, // Assuming AhmedabadComponent is standalone and imported here
+    SharedViewsModule, // Add SharedViewsModule to imports
   ],
 })
 export class AhmedabadModule {}
