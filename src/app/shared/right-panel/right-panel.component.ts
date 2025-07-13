@@ -1,6 +1,5 @@
-
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnChanges, SimpleChanges } from '@angular/core';
 
 @Component({
   selector: 'app-right-panel',
@@ -9,14 +8,23 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   templateUrl: './right-panel.component.html',
   styleUrl: './right-panel.component.css',
 })
-export class RightPanelComponent {
+export class RightPanelComponent implements OnChanges {
   @Input() location: string = '';
+  @Input() currentFilter: string = 'ALL'; // <-- 🔥 New input for external sync
   @Output() linkClick = new EventEmitter<string>();
 
   links: string[] = [];
   selectedLink: string = '';
 
-  ngOnChanges() {
+  // Mapping between button text and filter values
+  readonly linkToFilterMap: { [key: string]: string } = {
+    'NavIC Link': 'NAVIC',
+    'GPS Link': 'GPS',
+    'Glonass Link': 'GLONASS',
+    'All Links': 'ALL',
+  };
+
+  ngOnChanges(changes: SimpleChanges): void {
     const linkMap: { [key: string]: string[] } = {
       dashboard: ['NavIC Link', 'GPS Link', 'Glonass Link'],
       ahmedabad: ['NavIC Link', 'GPS Link', 'Glonass Link', 'All Links'],
@@ -26,8 +34,13 @@ export class RightPanelComponent {
       bhubaneshwar: ['NavIC Link', 'GPS Link', 'Glonass Link', 'All Links'],
       drc: ['NavIC Link', 'GPS Link', 'Glonass Link', 'All Links'],
     };
+
     this.links = linkMap[this.location] || [];
-    this.selectedLink = ''; // reset on location change
+
+    // Sync selectedLink based on external currentFilter
+    this.selectedLink = this.links.find(
+      (key) => this.linkToFilterMap[key] === this.currentFilter
+    ) || '';
   }
 
   getLinkClass(link: string): string {
@@ -62,23 +75,9 @@ export class RightPanelComponent {
     return `${base} ${colorClass}`;
   }
 
-  // onLinkClick(link: string) {
-  //   this.selectedLink = link;
-  //   const formatted = link.toLowerCase().replace(/ /g, '-');
-  //   this.linkClick.emit(formatted);
-  // }
-
   onLinkClick(link: string) {
-  this.selectedLink = link;
-
-  const linkToFilterMap: { [key: string]: string } = {
-    'NavIC Link': 'NAVIC',
-    'GPS Link': 'GPS',
-    'Glonass Link': 'GLONASS',
-    'All Links': 'ALL'
-  };
-
-  const filter = linkToFilterMap[link] || 'ALL';
-  this.linkClick.emit(filter); // Emits 'N', 'G', 'R', or 'ALL'
-}
+    this.selectedLink = link;
+    const filter = this.linkToFilterMap[link] || 'ALL';
+    this.linkClick.emit(filter);
+  }
 }

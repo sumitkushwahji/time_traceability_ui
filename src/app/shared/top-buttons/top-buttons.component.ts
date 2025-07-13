@@ -10,6 +10,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 })
 export class TopButtonsComponent {
   @Input() location: string = '';
+  @Input() selectedView: string = '';
+
   @Output() buttonClick = new EventEmitter<string>();
 
   buttons: string[] = [];
@@ -27,18 +29,37 @@ export class TopButtonsComponent {
     this.buttons = buttonMap[this.location] || [];
   }
 
-  getButtonClass(location: string): string {
-    const colorMap: { [key: string]: string } = {
-      dashboard: 'bg-blue-200 text-blue-800 hover:bg-blue-300',
-      ahmedabad: 'bg-teal-200 text-teal-800 hover:bg-teal-300',
-      bangalore: 'bg-green-200 text-green-800 hover:bg-green-300',
-      bhubaneshwar: 'bg-yellow-200 text-yellow-800 hover:bg-yellow-300',
-      faridabad: 'bg-orange-200 text-orange-800 hover:bg-orange-300',
-      guwahati: 'bg-purple-200 text-purple-800 hover:bg-purple-300',
-      drc: 'bg-pink-200 text-pink-800 hover:bg-pink-300',
-    };
-    return colorMap[location] || 'bg-gray-200 text-gray-800 hover:bg-gray-300';
-  }
+getButtonClass(button: string): string {
+  const base = 'px-4 py-2 rounded font-medium transition-colors duration-300';
+
+  const colorMap: { [key: string]: string } = {
+    dashboard: 'text-blue-800 hover:bg-blue-200',
+    ahmedabad: 'text-teal-800 hover:bg-teal-200',
+    bangalore: 'text-green-800 hover:bg-green-200',
+    bhubaneshwar: 'text-yellow-800 hover:bg-yellow-200',
+    faridabad: 'text-orange-800 hover:bg-orange-200',
+    guwahati: 'text-purple-800 hover:bg-purple-200',
+    drc: 'text-pink-800 hover:bg-pink-200',
+  };
+
+  const selectedColorMap: { [key: string]: string } = {
+    dashboard: 'bg-blue-200 font-bold',
+    ahmedabad: 'bg-teal-200 font-bold',
+    bangalore: 'bg-green-200 font-bold',
+    bhubaneshwar: 'bg-yellow-200 font-bold',
+    faridabad: 'bg-orange-200 font-bold',
+    guwahati: 'bg-purple-200 font-bold',
+    drc: 'bg-pink-200 font-bold',
+  };
+
+  const isSelected = this.selectedView === button.toLowerCase().replace(/ /g, '-');
+  const color = isSelected
+    ? selectedColorMap[this.location]
+    : colorMap[this.location];
+
+  return `${base} ${color}`;
+}
+
 
   onClick(btn: string) {
     const formatted = btn.toLowerCase().replace(/ /g, '-'); // handles spaces like "Link Stats" -> "link-stats"

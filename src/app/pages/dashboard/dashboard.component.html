@@ -1,6 +1,7 @@
 <!-- dashboard.component.html -->
 <app-top-buttons
   [location]="location"
+  [selectedView]="selectedView"
   (buttonClick)="onTopButtonClicked($event)"
 ></app-top-buttons>
 
@@ -16,6 +17,7 @@
     <app-right-panel
       class="w-full lg:w-64 bg-white rounded-2xl shadow p-4"
       [location]="location"
+       [currentFilter]="selectedFilter" 
       (linkClick)="onRightPanelFilter($event)"
     ></app-right-panel>
     
