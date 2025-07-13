@@ -1,15 +1,14 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Component, Inject, OnInit, PLATFORM_ID } from '@angular/core';
 import { ChartData, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { SatData2, SatDataService } from '../../../../services/sat-data.service';
 import { FormsModule } from '@angular/forms';
 
-
-
 @Component({
   selector: 'app-plot-view',
-  imports: [CommonModule, NgChartsModule,FormsModule], 
+  standalone: true,
+  imports: [CommonModule, NgChartsModule, FormsModule],
   templateUrl: './plot-view.component.html',
   styleUrl: './plot-view.component.css',
 })
@@ -31,13 +30,22 @@ export class PlotViewComponent implements OnInit {
     },
   };
 
-  constructor(private dataService: SatDataService) {}
+  isBrowser = false;
+
+  constructor(
+    private dataService: SatDataService,
+    @Inject(PLATFORM_ID) private platformId: Object
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
   ngOnInit(): void {
-    this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
-      this.rawData = data;
-      this.updateChartData();
-    });
+    if (this.isBrowser) {
+      this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
+        this.rawData = data;
+        this.updateChartData();
+      });
+    }
   }
 
   updateChartData() {
@@ -50,29 +58,28 @@ export class PlotViewComponent implements OnInit {
   }
 
   buildDatasets(data: SatData2[]) {
-  const allLocations = new Set<string>();
-  data.forEach(d => {
-    Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
-  });
+    const allLocations = new Set<string>();
+    data.forEach(d => {
+      Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
+    });
 
-  return Array.from(allLocations).map(loc => {
-    const color = this.getRandomColor();  // Generate one color for this dataset
+    return Array.from(allLocations).map(loc => {
+      const color = this.getRandomColor();
 
-    return {
-      label: loc,
-      data: data.map(d => d.locationDiffs[loc] ?? null),
-      borderColor: color,               // Line color
-      backgroundColor: color,           // Point fill color
-      pointBorderColor: color,          // Point border
-      pointBackgroundColor: color,      // Point fill
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      fill: false,
-      tension: 0.3,
-    };
-  });
-}
-
+      return {
+        label: loc,
+        data: data.map(d => d.locationDiffs[loc] ?? null),
+        borderColor: color,
+        backgroundColor: color,
+        pointBorderColor: color,
+        pointBackgroundColor: color,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: false,
+        tension: 0.3,
+      };
+    });
+  }
 
   getRandomColor() {
     const letters = '0123456789ABCDEF';

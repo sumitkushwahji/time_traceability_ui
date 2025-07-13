@@ -9,7 +9,7 @@ import {
   provideClientHydration,
   withEventReplay,
 } from '@angular/platform-browser';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -24,6 +24,8 @@ export const appConfig: ApplicationConfig = {
 
     // Import RouterModule for routing
     importProvidersFrom(RouterModule),
-    provideHttpClient(),
+
+    // Enable the HttpClient to use the fetch API for SSR compatibility
+    provideHttpClient(withFetch()),
   ],
 };
