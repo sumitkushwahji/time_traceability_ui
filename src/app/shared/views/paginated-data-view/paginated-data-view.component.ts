@@ -10,6 +10,7 @@ import { DateRangeService } from '../../../services/date-range.service';
 import { ExportService } from '../../../services/export.service';
 import { SatData, SatDataService } from '../../../services/sat-data.service';
 import { ActivatedRoute } from '@angular/router';
+import { FilterService } from '../../../services/filter.service';
 
 @Component({
   selector: 'app-paginated-data-view',
@@ -42,6 +43,7 @@ export class PaginatedDataViewComponent implements OnInit {
 
   startDate: string = '';
   endDate: string = '';
+  selectedFilter: string = 'ALL';
 
   // Mapping from identifier to source2 codes
   private readonly locationSource2Map: { [key: string]: string[] } = {
@@ -59,10 +61,17 @@ export class PaginatedDataViewComponent implements OnInit {
     private exportService: ExportService,
     private dataService: DataService,
     private dateRangeService: DateRangeService,
-    private route: ActivatedRoute // <-- inject ActivatedRoute
+    private route: ActivatedRoute,
+    private filterService: FilterService
   ) {}
 
   ngOnInit(): void {
+    this.filterService.filter$.subscribe((filter) => {
+      this.selectedFilter = filter;
+      this.currentPage = 1;
+      this.getData();
+    });
+
     // ✅ Extract dataIdentifier from route data
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
     this.searchSubject.pipe(debounceTime(300)).subscribe(() => {
@@ -94,14 +103,15 @@ export class PaginatedDataViewComponent implements OnInit {
 
     const fetcher = source2 // If a specific source2 code is determined
       ? this.satDataService.getPaginatedSatDataBySource2(
-          source2, // Pass the specific source2 code (e.g., 'GZLMB1')
+          source2,
           backendPage,
           this.pageSize,
           this.sortColumn,
           this.sortDirection,
-          effectiveSearchQuery, // This will be '' if searchQuery is empty
+          effectiveSearchQuery,
           this.startDate,
-          this.endDate
+          this.endDate,
+          this.selectedFilter // ✅ NEW
         )
       : // Otherwise, call the general getSatData
         this.satDataService.getSatData(

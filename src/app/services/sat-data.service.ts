@@ -76,7 +76,8 @@ export class SatDataService {
     sortDir: string,
     search: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    satLetter: string
   ): Observable<{ content: SatData[]; totalElements: number }> {
     let params = new HttpParams()
       .set('source2', source2)
@@ -88,6 +89,7 @@ export class SatDataService {
 
     if (startDate) params = params.set('startDate', startDate);
     if (endDate) params = params.set('endDate', endDate);
+    if (satLetter) params = params.set('satLetter', satLetter);
 
     return this.http.get<{ content: SatData[]; totalElements: number }>(
       this.baseUrl,
