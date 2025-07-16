@@ -1,6 +1,7 @@
+// src/app/shared/views/paginated-data-view/paginated-data-view.component.ts
+
 import { Component, OnInit, Input } from '@angular/core';
 import { Subject, debounceTime } from 'rxjs';
-
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -8,6 +9,7 @@ import { DataService } from '../../../services/data.service';
 import { DateRangeService } from '../../../services/date-range.service';
 import { ExportService } from '../../../services/export.service';
 import { SatData, SatDataService } from '../../../services/sat-data.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-paginated-data-view',
@@ -17,10 +19,10 @@ import { SatData, SatDataService } from '../../../services/sat-data.service';
   styleUrl: './paginated-data-view.component.css',
 })
 export class PaginatedDataViewComponent implements OnInit {
-  @Input() dataIdentifier?: string; // Input for city-specific data (e.g., 'bangalore')
+  @Input() dataIdentifier?: string; // This will receive 'bangalore'
 
   private searchSubject = new Subject<string>();
-  data: SatData[] = []; // This will hold the paginated data
+  data: SatData[] = [];
   totalItems = 0;
   dropdownOpen = false;
   currentPage = 1;
@@ -41,14 +43,28 @@ export class PaginatedDataViewComponent implements OnInit {
   startDate: string = '';
   endDate: string = '';
 
+  // Mapping from identifier to source2 codes
+  private readonly locationSource2Map: { [key: string]: string[] } = {
+    npl: ['GZLI2P', 'IRNPLI'],
+    bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
+    faridabad: ['GZLMF1', 'GZLMF2', 'IRACCO'],
+    ahmedabad: ['GZLAHM1', 'IRAHM1'],
+    bhubaneshwar: ['GZLBBS1', 'IRBBS1'],
+    drc: ['GZLDEL1', 'IRDEL1'],
+    guwahati: ['GZLGHT1', 'IRGHT1'],
+  };
+
   constructor(
     private satDataService: SatDataService,
     private exportService: ExportService,
     private dataService: DataService,
-    private dateRangeService: DateRangeService
+    private dateRangeService: DateRangeService,
+    private route: ActivatedRoute // <-- inject ActivatedRoute
   ) {}
 
   ngOnInit(): void {
+    // ✅ Extract dataIdentifier from route data
+    this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
     this.searchSubject.pipe(debounceTime(300)).subscribe(() => {
       this.currentPage = 1;
       this.getData();
@@ -58,7 +74,7 @@ export class PaginatedDataViewComponent implements OnInit {
     this.dateRangeService.dateRange$.subscribe((range) => {
       this.startDate = range.start;
       this.endDate = range.end;
-      this.currentPage = 1; // Reset page on date change
+      this.currentPage = 1;
       this.getData();
     });
   }
@@ -66,52 +82,48 @@ export class PaginatedDataViewComponent implements OnInit {
   getData(): void {
     const backendPage = this.currentPage - 1;
 
-    if (this.dataIdentifier) {
-      // Fetch paginated data for a specific identifier (e.g., city)
-      this.satDataService
-        .getPaginatedSatDataByIdentifier( // Corrected method name
-          this.dataIdentifier,
+    // Determine the source2 code based on dataIdentifier
+    const source2 = this.dataIdentifier
+      ? this.locationSource2Map[this.dataIdentifier]?.[1] ?? ''
+      : '';
+
+    // If a dataIdentifier is present, and no active user search,
+    // the search parameter in the URL should be empty.
+    // If there's a user search, that should take precedence.
+    const effectiveSearchQuery = this.searchQuery.trim();
+
+    const fetcher = source2 // If a specific source2 code is determined
+      ? this.satDataService.getPaginatedSatDataBySource2(
+          source2, // Pass the specific source2 code (e.g., 'GZLMB1')
           backendPage,
           this.pageSize,
           this.sortColumn,
           this.sortDirection,
-          this.searchQuery,
+          effectiveSearchQuery, // This will be '' if searchQuery is empty
           this.startDate,
           this.endDate
         )
-        .subscribe(
-          (response: { content: SatData[]; totalElements: number }) => { // Explicit type
-            this.data = response.content;
-            this.totalItems = response.totalElements;
-            this.dataService.setData(this.data);
-          },
-          (error: any) => { // Explicit type
-            console.error(`Error fetching paginated data for ${this.dataIdentifier}:`, error);
-          }
-        );
-    } else {
-      // Fallback or default behavior if no identifier is provided
-      this.satDataService
-        .getSatData(
+      : // Otherwise, call the general getSatData
+        this.satDataService.getSatData(
           backendPage,
           this.pageSize,
           this.sortColumn,
           this.sortDirection,
-          this.searchQuery,
+          effectiveSearchQuery, // This will be '' if searchQuery is empty
           this.startDate,
           this.endDate
-        )
-        .subscribe(
-          (response: { content: SatData[]; totalElements: number }) => { // Explicit type
-            this.data = response.content;
-            this.totalItems = response.totalElements;
-            this.dataService.setData(this.data);
-          },
-          (error: any) => { // Explicit type
-            console.error('Error fetching general paginated data:', error);
-          }
         );
-    }
+
+    fetcher.subscribe(
+      (response: { content: SatData[]; totalElements: number }) => {
+        this.data = response.content;
+        this.totalItems = response.totalElements;
+        this.dataService.setData(this.data);
+      },
+      (error: any) => {
+        console.error('Error fetching data:', error);
+      }
+    );
   }
 
   setSort(column: string): void {
@@ -165,10 +177,9 @@ export class PaginatedDataViewComponent implements OnInit {
     this.dropdownOpen = false;
     const fileName = `data.${format}`;
     const tableName = 'sat_data';
-
     this.exportService.exportTable(
       this.data,
-      format as 'csv' | 'json' | 'txt' | 'sql',
+      format as any,
       fileName,
       tableName
     );
