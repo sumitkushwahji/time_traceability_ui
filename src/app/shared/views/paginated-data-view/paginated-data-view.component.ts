@@ -1,7 +1,7 @@
 // src/app/shared/views/paginated-data-view/paginated-data-view.component.ts
 
 import { Component, OnInit, Input } from '@angular/core';
-import { Subject, debounceTime } from 'rxjs';
+import { Subject, debounceTime, Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -43,7 +43,7 @@ export class PaginatedDataViewComponent implements OnInit {
 
   startDate: string = '';
   endDate: string = '';
-  selectedFilter: string = 'ALL';
+  selectedFilter: string = 'ALL'; // This holds 'ALL', 'GPS', 'NAVIC', etc.
 
   // Mapping from identifier to source2 codes
   private readonly locationSource2Map: { [key: string]: string[] } = {
@@ -91,38 +91,47 @@ export class PaginatedDataViewComponent implements OnInit {
   getData(): void {
     const backendPage = this.currentPage - 1;
 
-    // Determine the source2 code based on dataIdentifier
-    const source2 = this.dataIdentifier
-      ? this.locationSource2Map[this.dataIdentifier]?.[1] ?? ''
-      : '';
+    // 🎯 Determine the source2 codes based on dataIdentifier
+    // If a dataIdentifier is present, get ALL associated source2 codes, otherwise null
+    const source2Codes: string[] | null = this.dataIdentifier
+      ? this.locationSource2Map[this.dataIdentifier] ?? null
+      : null;
 
-    // If a dataIdentifier is present, and no active user search,
-    // the search parameter in the URL should be empty.
-    // If there's a user search, that should take precedence.
+    // 🎯 Determine the effective satLetter to send to the backend
+    // If selectedFilter is 'ALL', send null to bypass the satLetter filter in backend
+    const effectiveSatLetter: string | null =
+      this.selectedFilter === 'ALL' ? null : this.selectedFilter.trim();
+
     const effectiveSearchQuery = this.searchQuery.trim();
 
-    const fetcher = source2 // If a specific source2 code is determined
-      ? this.satDataService.getPaginatedSatDataBySource2(
-          source2,
-          backendPage,
-          this.pageSize,
-          this.sortColumn,
-          this.sortDirection,
-          effectiveSearchQuery,
-          this.startDate,
-          this.endDate,
-          this.selectedFilter // ✅ NEW
-        )
-      : // Otherwise, call the general getSatData
-        this.satDataService.getSatData(
-          backendPage,
-          this.pageSize,
-          this.sortColumn,
-          this.sortDirection,
-          effectiveSearchQuery, // This will be '' if searchQuery is empty
-          this.startDate,
-          this.endDate
-        );
+    let fetcher: Observable<{ content: SatData[]; totalElements: number }>;
+
+    // 🎯 Use the specific service method if source2Codes are determined
+    if (source2Codes) {
+      fetcher = this.satDataService.getPaginatedSatDataBySource2(
+        source2Codes, // Pass the array directly
+        backendPage,
+        this.pageSize,
+        this.sortColumn,
+        this.sortDirection,
+        effectiveSearchQuery,
+        this.startDate,
+        this.endDate,
+        effectiveSatLetter // Pass the correctly handled satLetter
+      );
+    } else {
+      // Otherwise, call the general getSatData
+      fetcher = this.satDataService.getSatData(
+        backendPage,
+        this.pageSize,
+        this.sortColumn,
+        this.sortDirection,
+        effectiveSearchQuery,
+        this.startDate,
+        this.endDate,
+        effectiveSatLetter // Pass the correctly handled satLetter to general method too
+      );
+    }
 
     fetcher.subscribe(
       (response: { content: SatData[]; totalElements: number }) => {

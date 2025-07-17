@@ -43,7 +43,8 @@ export class SatDataService {
     sortDir: string,
     search: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    satLetter?: string | null // 🎯 ADDED: satLetter parameter, can be string or null
   ): Observable<{ content: SatData[]; totalElements: number }> {
     let params = new HttpParams()
       .set('page', page.toString())
@@ -58,6 +59,10 @@ export class SatDataService {
     if (endDate) {
       params = params.set('endDate', this.formatDateOnly(endDate));
     }
+    // 🎯 ADDED: Conditionally set satLetter parameter
+    if (satLetter) { // Only add if it's not null or empty
+      params = params.set('satLetter', satLetter);
+    }
 
     return this.http.get<{ content: SatData[]; totalElements: number }>(
       this.baseUrl,
@@ -66,10 +71,8 @@ export class SatDataService {
   }
 
   // NEW method: get paginated SatData for a specific identifier
-  // src/app/services/sat-data.service.ts
-
   getPaginatedSatDataBySource2(
-    source2: string,
+    source2: string[] | null, // 🎯 FIX: Changed type from 'string' to 'string[] | null'
     page: number,
     size: number,
     sortBy: string,
@@ -77,19 +80,26 @@ export class SatDataService {
     search: string,
     startDate: string,
     endDate: string,
-    satLetter: string
+    satLetter: string | null
   ): Observable<{ content: SatData[]; totalElements: number }> {
     let params = new HttpParams()
-      .set('source2', source2)
       .set('page', page)
       .set('size', size)
       .set('sortBy', sortBy)
       .set('sortDir', sortDir)
       .set('search', search || '');
 
+    if (source2 && source2.length > 0) {
+      source2.forEach((s) => {
+        params = params.append('source2', s);
+      });
+    }
+
     if (startDate) params = params.set('startDate', startDate);
     if (endDate) params = params.set('endDate', endDate);
-    if (satLetter) params = params.set('satLetter', satLetter);
+    if (satLetter) {
+      params = params.set('satLetter', satLetter);
+    }
 
     return this.http.get<{ content: SatData[]; totalElements: number }>(
       this.baseUrl,
@@ -120,7 +130,6 @@ export class SatDataService {
     });
   }
 
-  // NEW method: fetch pivoted data for a specific identifier (e.g., city)
   getPivotedSatDataByIdentifier(
     identifier: string, // e.g., 'ahmedabad', 'bangalore'
     startDate?: string,
@@ -138,8 +147,6 @@ export class SatDataService {
     );
   }
 
-  // NEW method: fetch pivoted data typed as SatData2[] for plot, potentially for a specific identifier
-  // Renamed to be more generic, and added identifier parameter
   getPivotedSatDataForPlot(
     identifier?: string, // Optional identifier for plot data
     startDate?: string,
