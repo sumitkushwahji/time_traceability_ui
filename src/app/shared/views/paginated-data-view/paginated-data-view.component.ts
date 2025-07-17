@@ -1,7 +1,9 @@
 // src/app/shared/views/paginated-data-view/paginated-data-view.component.ts
 
-import { Component, OnInit, Input } from '@angular/core';
-import { Subject, debounceTime, Observable } from 'rxjs';
+import { Component, OnInit, Input, OnDestroy } from '@angular/core'; // 🎯 Added OnDestroy
+import { Subject, Observable, combineLatest } from 'rxjs'; // 🎯 Added combineLatest
+import { debounceTime, distinctUntilChanged, startWith, tap, takeUntil } from 'rxjs/operators'; // 🎯 Added operators
+
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -17,12 +19,18 @@ import { FilterService } from '../../../services/filter.service';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './paginated-data-view.component.html',
-  styleUrl: './paginated-data-view.component.css',
+  styleUrls: ['./paginated-data-view.component.css'], // 🎯 Corrected styleUrl to styleUrls
 })
-export class PaginatedDataViewComponent implements OnInit {
-  @Input() dataIdentifier?: string; // This will receive 'bangalore'
+export class PaginatedDataViewComponent implements OnInit, OnDestroy { // 🎯 Implemented OnDestroy
+  @Input() dataIdentifier?: string;
 
-  private searchSubject = new Subject<string>();
+  // 🎯 Use Subjects for parameters that can change from UI interactions
+  private searchInput$ = new Subject<string>(); // For debounced search input
+  private filterChange$ = new Subject<string>(); // For external filter service changes
+  private dateRangeChange$ = new Subject<{ start: string; end: string }>(); // For external date range service changes AND internal date input changes
+  private pageChange$ = new Subject<void>(); // For page navigation (next/previous/pageSize change)
+  private sortChange$ = new Subject<void>(); // For sort column/direction changes
+
   data: SatData[] = [];
   totalItems = 0;
   dropdownOpen = false;
@@ -37,8 +45,10 @@ export class PaginatedDataViewComponent implements OnInit {
     return this._searchQuery;
   }
   set searchQuery(value: string) {
-    this._searchQuery = value;
-    this.searchSubject.next(value);
+    if (this._searchQuery !== value) { // Prevent unnecessary emits if value is same
+      this._searchQuery = value;
+      this.searchInput$.next(value); // Emit to the search subject
+    }
   }
 
   startDate: string = '';
@@ -56,6 +66,8 @@ export class PaginatedDataViewComponent implements OnInit {
     guwahati: ['GZLGHT1', 'IRGHT1'],
   };
 
+  private destroy$ = new Subject<void>(); // 🎯 For managing subscriptions lifecycle
+
   constructor(
     private satDataService: SatDataService,
     private exportService: ExportService,
@@ -66,38 +78,76 @@ export class PaginatedDataViewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.filterService.filter$.subscribe((filter) => {
-      this.selectedFilter = filter;
-      this.currentPage = 1;
-      this.getData();
-    });
-
-    // ✅ Extract dataIdentifier from route data
+    // 1. Initialize component properties from route data/services
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
-    this.searchSubject.pipe(debounceTime(300)).subscribe(() => {
-      this.currentPage = 1;
-      this.getData();
-    });
-    this.getData();
 
-    this.dateRangeService.dateRange$.subscribe((range) => {
-      this.startDate = range.start;
-      this.endDate = range.end;
-      this.currentPage = 1;
-      this.getData();
-    });
+    // 2. Subscribe to external service changes and map them to internal subjects
+    this.filterService.filter$
+      .pipe(
+        distinctUntilChanged(), // Only emit if filter actually changed
+        tap((filter) => {
+          this.selectedFilter = filter;
+          this.currentPage = 1; // Reset page on filter change
+        }),
+        debounceTime(0), // Allow component state to update before triggering combined stream
+        takeUntil(this.destroy$) // Ensure this subscription is cleaned up
+      )
+      .subscribe(() => this.filterChange$.next(this.selectedFilter)); // Emit to internal subject
+
+    this.dateRangeService.dateRange$
+      .pipe(
+        distinctUntilChanged((prev, curr) => prev.start === curr.start && prev.end === curr.end),
+        tap((range) => {
+          this.startDate = range.start;
+          this.endDate = range.end;
+          this.currentPage = 1; // Reset page on date range change
+        }),
+        debounceTime(0), // Allow component state to update
+        takeUntil(this.destroy$) // Ensure this subscription is cleaned up
+      )
+      .subscribe((range) => this.dateRangeChange$.next(range)); // Emit to internal subject
+
+
+    // 3. Combine all relevant streams that trigger data fetching
+    // Use startWith() on each to trigger an initial data fetch when component loads
+    combineLatest([
+      this.searchInput$.pipe(debounceTime(300), distinctUntilChanged(), startWith(this.searchQuery)),
+      this.filterChange$.pipe(startWith(this.selectedFilter)), // Initial emit with component's initial filter
+      this.dateRangeChange$.pipe(startWith({start: this.startDate, end: this.endDate})), // Initial emit with component's initial dates
+      this.pageChange$.pipe(startWith(null)), // Initial emit for page (value doesn't matter, just trigger)
+      this.sortChange$.pipe(startWith(null)) // Initial emit for sort (value doesn't matter, just trigger)
+    ])
+    .pipe(
+        tap(() => console.log('Triggering getData call...')), // For debugging: see when getData is triggered
+        debounceTime(50), // Small debounce to aggregate rapid changes (e.g., if multiple params init quickly)
+        // distinctUntilChanged is tricky with objects/arrays. For simple values it's fine.
+        // If you need deep comparison for the combined output, you'd need a custom comparator or JSON.stringify.
+        // For now, let's rely on individual distinctUntilChanged and the debounce.
+        // distinctUntilChanged((prev, curr) => JSON.stringify(prev) === JSON.stringify(curr)),
+        tap(() => this.getData()), // Call getData once after all parameters have settled
+        takeUntil(this.destroy$) // Unsubscribe from this combined observable when component is destroyed
+    )
+    .subscribe();
+
+    // 🎯 REMOVED: The direct this.getData() call here, as combineLatest handles the initial fetch.
+    // this.getData();
+  }
+
+  // 🎯 Implement OnDestroy to clean up subscriptions
+  ngOnDestroy(): void {
+    this.destroy$.next(); // Emit a value to signal completion
+    this.destroy$.complete(); // Complete the subject
   }
 
   getData(): void {
     const backendPage = this.currentPage - 1;
 
-    // 🎯 Determine the source2 codes based on dataIdentifier
-    // If a dataIdentifier is present, get ALL associated source2 codes, otherwise null
+    // Determine the source2 codes based on dataIdentifier
     const source2Codes: string[] | null = this.dataIdentifier
       ? this.locationSource2Map[this.dataIdentifier] ?? null
       : null;
 
-    // 🎯 Determine the effective satLetter to send to the backend
+    // Determine the effective satLetter to send to the backend
     // If selectedFilter is 'ALL', send null to bypass the satLetter filter in backend
     const effectiveSatLetter: string | null =
       this.selectedFilter === 'ALL' ? null : this.selectedFilter.trim();
@@ -106,7 +156,7 @@ export class PaginatedDataViewComponent implements OnInit {
 
     let fetcher: Observable<{ content: SatData[]; totalElements: number }>;
 
-    // 🎯 Use the specific service method if source2Codes are determined
+    // Use the specific service method if source2Codes are determined
     if (source2Codes) {
       fetcher = this.satDataService.getPaginatedSatDataBySource2(
         source2Codes, // Pass the array directly
@@ -117,7 +167,7 @@ export class PaginatedDataViewComponent implements OnInit {
         effectiveSearchQuery,
         this.startDate,
         this.endDate,
-        effectiveSatLetter // Pass the correctly handled satLetter
+        effectiveSatLetter
       );
     } else {
       // Otherwise, call the general getSatData
@@ -129,7 +179,7 @@ export class PaginatedDataViewComponent implements OnInit {
         effectiveSearchQuery,
         this.startDate,
         this.endDate,
-        effectiveSatLetter // Pass the correctly handled satLetter to general method too
+        effectiveSatLetter
       );
     }
 
@@ -152,31 +202,33 @@ export class PaginatedDataViewComponent implements OnInit {
       this.sortColumn = column;
       this.sortDirection = 'asc';
     }
-    this.getData();
+    this.sortChange$.next(); // 🎯 Trigger fetch via subject
   }
 
   nextPage(): void {
     if (this.currentPage * this.pageSize < this.totalItems) {
       this.currentPage++;
-      this.getData();
+      this.pageChange$.next(); // 🎯 Trigger fetch via subject
     }
   }
 
   previousPage(): void {
     if (this.currentPage > 1) {
       this.currentPage--;
-      this.getData();
+      this.pageChange$.next(); // 🎯 Trigger fetch via subject
     }
   }
 
   onPageSizeChange(): void {
-    this.currentPage = 1;
-    this.getData();
+    this.currentPage = 1; // Reset page on size change
+    this.pageChange$.next(); // 🎯 Trigger fetch via subject (pageSize is part of component state)
   }
 
-  onDateChange(): void {
-    this.currentPage = 1;
-    this.getData();
+  // 🎯 Re-added and renamed for clarity: Method called by HTML date inputs
+  onDateInputChange(): void {
+    this.currentPage = 1; // Reset page when date changes
+    // Emit the current startDate and endDate to the internal dateRangeChange$ subject
+    this.dateRangeChange$.next({ start: this.startDate, end: this.endDate });
   }
 
   get startIndex(): number {

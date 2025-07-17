@@ -1,8 +1,17 @@
-<app-top-buttons [location]="locationName"  (buttonClick)="onTopButtonClicked($event)" ></app-top-buttons>
+<app-top-buttons
+  [location]="locationName"
+  [selectedView]="selectedView"
+  (buttonClick)="onTopButtonClicked($event)"
+></app-top-buttons>
 
 <div class="flex">
   <div class="flex-1 p-4">
     <router-outlet></router-outlet>
   </div>
-  <app-right-panel [location]="locationName" class="w-64 border-l bg-white p-4"></app-right-panel>
+  <app-right-panel
+    [location]="locationName"
+    [currentFilter]="selectedFilter"
+    (linkClick)="onRightPanelFilter($event)"
+    class="w-64 border-l bg-white p-4"
+  ></app-right-panel>
 </div>

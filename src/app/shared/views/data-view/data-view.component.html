@@ -49,7 +49,7 @@
     <td class="p-2">{{ row.mjdDateTime | date:'medium':'Asia/Kolkata' }}</td>
     <td class="p-2">{{ row.sttime }}</td>
     <td *ngFor="let sat of satelliteList" class="p-2 text-center">
-      {{ row.locationDiffs[sat] ?? '-' }}
+      {{ row.locationDiffs[sat] != null ? (row.locationDiffs[sat] | number:'1.2-2') : '-' }}
     </td>
   </tr>
 
