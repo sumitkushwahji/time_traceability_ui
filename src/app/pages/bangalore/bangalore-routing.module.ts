@@ -4,6 +4,7 @@ import { BangaloreComponent } from './bangalore.component';
 // Import the shared components
 import { PaginatedDataViewComponent } from '../../shared/views/paginated-data-view/paginated-data-view.component';
 import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
+import { PaginatedPlotViewComponent } from '../../shared/views/paginated-plot-view/paginated-plot-view.component';
 
 const routes: Routes = [
   {
@@ -20,7 +21,7 @@ const routes: Routes = [
       // Use the shared PlotViewComponent for Bangalore's plot view
       {
         path: 'plot-view',
-        component: PlotViewComponent,
+        component: PaginatedPlotViewComponent,
         data: { dataType: 'specific', dataIdentifier: 'bangalore' }, // Pass 'bangalore' as identifier
       },
     ],

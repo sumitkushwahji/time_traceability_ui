@@ -1,0 +1,27 @@
+<div class="p-4">
+  <h2 class="text-xl font-semibold mb-4">Common View Time Transfer Link</h2>
+
+  <div class="mb-4">
+    <label for="dataLimit" class="mr-2 font-medium">Show last:</label>
+    <select id="dataLimit"
+            [(ngModel)]="dataLimit"
+            (change)="updateChartData()"
+            class="border px-2 py-1">
+      <option *ngFor="let limit of dataLimits" [value]="limit">
+        {{ limit === -1 ? 'All' : limit }}
+      </option>
+    </select>
+  </div>
+
+  <ng-container *ngIf="chartData; else loadingOrSSR">
+    <canvas baseChart
+            [data]="chartData"
+            [options]="chartOptions"
+            [type]="'line'">
+    </canvas>
+  </ng-container>
+
+  <ng-template #loadingOrSSR>
+    <p class="text-gray-500 italic">Chart is not available (loading or SSR).</p>
+  </ng-template>
+</div>
