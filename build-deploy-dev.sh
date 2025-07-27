@@ -2,7 +2,7 @@
 
 # Ensure script exits on error
 SOURCE_DIR="dist/time_traceability_ui"
-TARGET_DIR="/home/time-tracebility/time_traceability_rrsl/docker-compose-nginx/nginx-data/time_traceability_ui"
+TARGET_DIR="/home/time-tracebility/code-repository/npli-tnf-nginx/nginx-data/html/time_traceability_ui"
 
 set -e
 
