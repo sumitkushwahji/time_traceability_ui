@@ -19,7 +19,7 @@ import { FilterService } from '../../services/filter.service';
 export class AhmedabadComponent {
   locationName = 'ahmedabad';
    selectedView: string = ''; // To track which top button is active
-     selectedFilter: string = 'ALL'; // To track the current right-panel filter
+     selectedFilter: string = 'GPS'; // To track the current right-panel filter
    
      constructor(
        private router: Router,

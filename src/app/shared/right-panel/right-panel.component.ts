@@ -37,10 +37,24 @@ export class RightPanelComponent implements OnChanges {
 
     this.links = linkMap[this.location] || [];
 
-    // Sync selectedLink based on external currentFilter
-    this.selectedLink = this.links.find(
-      (key) => this.linkToFilterMap[key] === this.currentFilter
-    ) || '';
+    // Always sync selectedLink with currentFilter when provided
+    if (this.currentFilter) {
+      const matchingLink = this.links.find(
+        (key) => this.linkToFilterMap[key] === this.currentFilter
+      );
+      if (matchingLink) {
+        this.selectedLink = matchingLink;
+      }
+    } else if (changes['location'] && changes['location'].firstChange) {
+      // Only set default on very first initialization when no currentFilter is provided
+      const defaultLink = this.links.find(link => link.includes('GPS')) || this.links[0];
+      
+      if (defaultLink) {
+        this.selectedLink = defaultLink;
+        const defaultFilter = this.linkToFilterMap[defaultLink] || 'GPS';
+        this.linkClick.emit(defaultFilter); // Emit default filter
+      }
+    }
   }
 
   getLinkClass(link: string): string {

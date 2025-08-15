@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ChartConfiguration, ChartOptions } from 'chart.js';
 import { Subscription, interval, switchMap } from 'rxjs';
 import { DataCompletenessService } from '../../../../services/data-completeness.service';
+import { PlatformService } from '../../../../services/platform.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { NgChartsModule } from 'ng2-charts';
@@ -21,6 +22,7 @@ interface SourceSessionStatus {
 })
 export class DataCompletenessDashboardComponent implements OnInit, OnDestroy {
   data: SourceSessionStatus[] = [];
+  isBrowser!: boolean;
   chartData: ChartConfiguration<'bar'>['data'] = {
     labels: [],
     datasets: [
@@ -68,8 +70,9 @@ export class DataCompletenessDashboardComponent implements OnInit, OnDestroy {
   private updateSubscription: Subscription | undefined;
   private dataCompletenessService: DataCompletenessService;
 
-  constructor(dataCompletenessService: DataCompletenessService) {
+  constructor(dataCompletenessService: DataCompletenessService, private platformService: PlatformService) {
     this.dataCompletenessService = dataCompletenessService;
+    this.isBrowser = this.platformService.isBrowser();
   }
 
   ngOnInit(): void {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TopButtonsComponent } from '../../shared/top-buttons/top-buttons.component';
@@ -19,13 +19,33 @@ import { FilterService } from '../../services/filter.service';
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   location = 'dashboard';
   selectedView: string = '';
   
-  selectedFilter: string = 'ALL'; // ⬅️ Add this
+  selectedFilter: string = 'GPS'; // Default to GPS
 
-  constructor(private router: Router, private route: ActivatedRoute, private filterService: FilterService) {}
+  constructor(private router: Router, private route: ActivatedRoute, private filterService: FilterService) {
+    // Ensure filter service has the correct initial value
+    this.filterService.setFilter(this.selectedFilter);
+  }
+
+  ngOnInit(): void {
+    // Initialize selectedView based on the current child route
+    this.route.firstChild?.url.subscribe((urlSegments) => {
+      if (urlSegments.length > 0) {
+        this.selectedView = urlSegments[0].path;
+      } else {
+        // Default to 'plot-view' if no child route is active (matches the default redirect)
+        this.selectedView = 'plot-view';
+      }
+    });
+
+    // If no child route is initially active, set the default
+    if (!this.selectedView) {
+      this.selectedView = 'plot-view';
+    }
+  }
 
   onTopButtonClicked(view: string) {
     this.selectedView = view; // Store the selected view
@@ -34,7 +54,8 @@ export class DashboardComponent {
     this.router.navigate([view], { relativeTo: this.route });
   }
 
- onRightPanelFilter(filter: string) {
-  this.filterService.setFilter(filter);
-}
+  onRightPanelFilter(filter: string) {
+    this.selectedFilter = filter; // Update local state
+    this.filterService.setFilter(filter); // Update service state
+  }
 }

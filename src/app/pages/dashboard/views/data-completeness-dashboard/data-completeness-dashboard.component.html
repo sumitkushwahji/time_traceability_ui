@@ -15,12 +15,20 @@
   </div>
 
   <div class="relative flex-grow">
-    <canvas baseChart
-            class="w-full h-full"
-            [data]="chartData"
-            [options]="chartOptions2"
-            [type]="'bar'">
-    </canvas>
+    <div *ngIf="isBrowser; else serverSideChart" class="w-full">
+      <canvas baseChart
+              class="w-full h-full"
+              [data]="chartData"
+              [options]="chartOptions2"
+              [type]="'bar'">
+      </canvas>
+    </div>
+    
+    <ng-template #serverSideChart>
+      <div class="flex items-center justify-center h-64 bg-gray-100 rounded">
+        <p class="text-gray-500 italic">Chart will load when page is fully loaded...</p>
+      </div>
+    </ng-template>
   </div>
 
   <p class="mt-2 text-sm text-gray-500 text-center">

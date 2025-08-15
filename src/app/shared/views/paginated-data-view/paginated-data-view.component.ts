@@ -148,9 +148,24 @@ export class PaginatedDataViewComponent implements OnInit, OnDestroy { // 🎯 I
       : null;
 
     // Determine the effective satLetter to send to the backend
-    // If selectedFilter is 'ALL', send null to bypass the satLetter filter in backend
-    const effectiveSatLetter: string | null =
-      this.selectedFilter === 'ALL' ? null : this.selectedFilter.trim();
+    // Handle system-level filtering (GPS, NavIC, GLONASS) differently
+    let effectiveSatLetter: string | null = null;
+    
+    if (this.selectedFilter === 'ALL') {
+      effectiveSatLetter = null; // Show all satellites
+    } else if (this.selectedFilter === 'GPS') {
+      // For GPS filtering, we'll need to filter client-side since backend expects specific satLetter
+      effectiveSatLetter = null; // Let all data come through, filter client-side later
+    } else if (this.selectedFilter === 'NAVIC') {
+      // For NavIC filtering, we'll need to filter client-side since backend expects specific satLetter
+      effectiveSatLetter = null; // Let all data come through, filter client-side later
+    } else if (this.selectedFilter === 'GLONASS') {
+      // For GLONASS filtering, we'll need to filter client-side since backend expects specific satLetter
+      effectiveSatLetter = null; // Let all data come through, filter client-side later
+    } else {
+      // For specific satellite letter filtering
+      effectiveSatLetter = this.selectedFilter.trim();
+    }
 
     const effectiveSearchQuery = this.searchQuery.trim();
 
@@ -185,8 +200,25 @@ export class PaginatedDataViewComponent implements OnInit, OnDestroy { // 🎯 I
 
     fetcher.subscribe(
       (response: { content: SatData[]; totalElements: number }) => {
-        this.data = response.content;
-        this.totalItems = response.totalElements;
+        let filteredData = response.content;
+        
+        // Apply client-side filtering for system-level filters
+        if (this.selectedFilter === 'GPS') {
+          filteredData = response.content.filter(
+            (row) => row.satLetter?.toUpperCase().startsWith('G')
+          );
+        } else if (this.selectedFilter === 'NAVIC') {
+          filteredData = response.content.filter(
+            (row) => row.satLetter?.toUpperCase().startsWith('IR')
+          );
+        } else if (this.selectedFilter === 'GLONASS') {
+          filteredData = response.content.filter(
+            (row) => row.satLetter?.toUpperCase().startsWith('R')
+          );
+        }
+        
+        this.data = filteredData;
+        this.totalItems = filteredData.length; // Update total count for system-level filtering
         this.dataService.setData(this.data);
       },
       (error: any) => {

@@ -31,37 +31,47 @@ export class DataViewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.fetchPivotedData();
-
+    // Subscribe to filter changes first
     this.filterService.filter$.subscribe((filterValue: string) => {
       this.applyFilter(filterValue);
     });
+    
+    // Then fetch data
+    this.fetchPivotedData();
   }
 
   fetchPivotedData(): void {
     if (this.dataType === 'all') {
       // This is for the dashboard or any view needing aggregated data
       this.satDataService
-        .getPivotedSatData(this.startDate, this.endDate, this.selectedSource)
+        .getPivotedSatDataForPlot()
         .subscribe(
           (data) => {
             this.pivotedData = data;
             this.filteredData = data;
             this.satelliteList = this.extractUniqueSatellites(data);
+            
+            // Apply current filter state immediately after data loads
+            const currentFilter = this.filterService.getCurrentFilter();
+            this.applyFilter(currentFilter);
           },
           (err) => {
             console.error('Error fetching aggregated pivoted data:', err);
           }
         );
     } else if (this.dataType === 'specific' && this.dataIdentifier) {
-      // This will be for city-specific pages, using the new service method
+      // This will be for city-specific pages, using the plot service method to get all satellite types
       this.satDataService
-        .getPivotedSatDataByIdentifier(this.dataIdentifier, this.startDate, this.endDate, this.selectedSource)
+        .getPivotedSatDataForPlot(this.dataIdentifier, this.startDate, this.endDate)
         .subscribe(
           (data) => {
             this.pivotedData = data;
             this.filteredData = data;
             this.satelliteList = this.extractUniqueSatellites(data);
+            
+            // Apply current filter state immediately after data loads
+            const currentFilter = this.filterService.getCurrentFilter();
+            this.applyFilter(currentFilter);
           },
           (err) => {
             console.error(`Error fetching specific pivoted data for ${this.dataIdentifier}:`, err);
@@ -78,10 +88,50 @@ export class DataViewComponent implements OnInit {
   applyFilter(filter: string): void {
     if (filter === 'ALL') {
       this.filteredData = this.pivotedData;
+    } else if (filter === 'GPS') {
+      // Filter for GPS satellites (exact match for 'GPS' system name)
+      this.filteredData = this.pivotedData.filter(
+        (row) => row.satLetter?.toUpperCase() === 'GPS'
+      );
+    } else if (filter === 'NAVIC') {
+      // Filter for NavIC satellites (exact match for 'NAVIC' system name)
+      this.filteredData = this.pivotedData.filter(
+        (row) => row.satLetter?.toUpperCase() === 'NAVIC'
+      );
+    } else if (filter === 'GLONASS') {
+      // Filter for GLONASS satellites (exact match for 'GLONASS' system name)
+      this.filteredData = this.pivotedData.filter(
+        (row) => row.satLetter?.toUpperCase() === 'GLONASS'
+      );
     } else {
+      // Fallback to exact satellite letter match
       this.filteredData = this.pivotedData.filter(
         (row) => row.satLetter?.toUpperCase() === filter
       );
+    }
+    
+    // Update satellite list based on filtered data and current filter
+    this.updateSatelliteListForFilter(filter);
+  }
+
+  updateSatelliteListForFilter(filter: string): void {
+    // Get all satellites from the original data
+    const allSatellites = this.extractUniqueSatellites(this.pivotedData);
+    
+    if (filter === 'ALL') {
+      this.satelliteList = allSatellites;
+    } else if (filter === 'GPS') {
+      // Show only GPS satellites (those starting with 'G')
+      this.satelliteList = allSatellites.filter(sat => sat.toUpperCase().startsWith('G'));
+    } else if (filter === 'NAVIC') {
+      // Show only NavIC satellites (those starting with 'IR')
+      this.satelliteList = allSatellites.filter(sat => sat.toUpperCase().startsWith('IR'));
+    } else if (filter === 'GLONASS') {
+      // Show only GLONASS satellites (those starting with 'R')
+      this.satelliteList = allSatellites.filter(sat => sat.toUpperCase().startsWith('R'));
+    } else {
+      // For specific satellite filtering, show all satellites but could be refined
+      this.satelliteList = allSatellites;
     }
   }
 

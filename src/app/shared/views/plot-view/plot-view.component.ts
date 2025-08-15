@@ -1,10 +1,12 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, PLATFORM_ID, Input } from '@angular/core'; // Added Input
+import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, Input } from '@angular/core'; // Added Input and OnDestroy
 import { ChartData, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
+import { Subject, takeUntil } from 'rxjs';
 
 import { FormsModule } from '@angular/forms';
 import { SatData2, SatDataService } from '../../../services/sat-data.service';
+import { FilterService } from '../../../services/filter.service';
 
 @Component({
   selector: 'app-plot-view',
@@ -13,16 +15,19 @@ import { SatData2, SatDataService } from '../../../services/sat-data.service';
   templateUrl: './plot-view.component.html',
   styleUrl: './plot-view.component.css',
 })
-export class PlotViewComponent implements OnInit {
+export class PlotViewComponent implements OnInit, OnDestroy {
   // 'all' for dashboard-like views (aggregated data), 'specific' for city-specific views.
   @Input() dataType: 'all' | 'specific' = 'all';
   @Input() dataIdentifier?: string; // e.g., city name if dataType is 'specific'
 
   rawData: SatData2[] = [];
+  filteredData: SatData2[] = [];
   chartData: ChartData<'line'> = { labels: [], datasets: [] };
 
   dataLimits = [10, 20, 50, 100, 200, 500, -1];
   dataLimit = -1;
+
+  private destroy$ = new Subject<void>();
 
   chartOptions: ChartOptions = {
     responsive: true,
@@ -39,27 +44,48 @@ export class PlotViewComponent implements OnInit {
 
   constructor(
     private dataService: SatDataService,
+    private filterService: FilterService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
   ngOnInit(): void {
+    // Subscribe to filter changes
+    this.filterService.filter$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((filter) => {
+        this.applyFilter(filter);
+      });
+
     if (this.isBrowser) {
       this.fetchPlotData();
     }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   fetchPlotData(): void {
     if (this.dataType === 'all') {
       this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
         this.rawData = data;
-        this.updateChartData();
+        this.filteredData = data;
+        
+        // Apply current filter state immediately after data loads
+        const currentFilter = this.filterService.getCurrentFilter();
+        this.applyFilter(currentFilter);
       });
     } else if (this.dataType === 'specific' && this.dataIdentifier) {
       this.dataService.getPivotedSatDataForPlot(this.dataIdentifier).subscribe((data) => {
         this.rawData = data;
-        this.updateChartData();
+        this.filteredData = data;
+        
+        // Apply current filter state immediately after data loads
+        const currentFilter = this.filterService.getCurrentFilter();
+        this.applyFilter(currentFilter);
       });
     } else {
       console.warn('PlotViewComponent: dataType or dataIdentifier not properly set. Defaulting to "all".');
@@ -69,8 +95,59 @@ export class PlotViewComponent implements OnInit {
     }
   }
 
+  applyFilter(filter: string): void {
+    if (!this.rawData.length) return;
+
+    if (filter === 'ALL') {
+      this.filteredData = this.rawData;
+    } else if (filter === 'GPS') {
+      // Filter for GPS satellites - need to check the locationDiffs keys for satellites starting with 'G'
+      this.filteredData = this.rawData.map(dataPoint => ({
+        ...dataPoint,
+        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'G')
+      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+    } else if (filter === 'NAVIC') {
+      // Filter for NavIC satellites - need to check the locationDiffs keys for satellites starting with 'IR'
+      this.filteredData = this.rawData.map(dataPoint => ({
+        ...dataPoint,
+        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'IR')
+      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+    } else if (filter === 'GLONASS') {
+      // Filter for GLONASS satellites - need to check the locationDiffs keys for satellites starting with 'R'
+      this.filteredData = this.rawData.map(dataPoint => ({
+        ...dataPoint,
+        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'R')
+      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+    } else {
+      // For specific satellite filtering, keep original logic
+      this.filteredData = this.rawData;
+    }
+    
+    this.updateChartData();
+  }
+
+  filterLocationDiffsBySystem(locationDiffs: { [key: string]: number }, systemPrefix: string): { [key: string]: number } {
+    const filtered: { [key: string]: number } = {};
+    
+    Object.keys(locationDiffs).forEach(satKey => {
+      if (systemPrefix === 'IR') {
+        // For NavIC, check if satellite starts with 'IR'
+        if (satKey.toUpperCase().startsWith('IR')) {
+          filtered[satKey] = locationDiffs[satKey];
+        }
+      } else {
+        // For GPS ('G') and GLONASS ('R'), check first character
+        if (satKey.toUpperCase().startsWith(systemPrefix)) {
+          filtered[satKey] = locationDiffs[satKey];
+        }
+      }
+    });
+    
+    return filtered;
+  }
+
   updateChartData() {
-    const sliced = this.dataLimit === -1 ? this.rawData : this.rawData.slice(-this.dataLimit);
+    const sliced = this.dataLimit === -1 ? this.filteredData : this.filteredData.slice(-this.dataLimit);
 
     this.chartData = {
       labels: sliced.map(d => new Date(d.mjdDateTime).toLocaleString()),

@@ -13,7 +13,7 @@
     </select>
   </div>
 
-  <ng-container *ngIf="chartData; else loadingOrSSR">
+  <ng-container *ngIf="isBrowser && chartData; else loadingOrSSR">
     <canvas baseChart
             [data]="chartData"
             [options]="chartOptions"
@@ -22,6 +22,11 @@
   </ng-container>
 
   <ng-template #loadingOrSSR>
-    <p class="text-gray-500 italic">Chart is not available (loading or SSR).</p>
+    <div class="flex items-center justify-center h-64 bg-gray-100 rounded">
+      <p class="text-gray-500 italic">
+        <span *ngIf="!isBrowser">Chart will load when page is fully loaded...</span>
+        <span *ngIf="isBrowser && !chartData">Loading chart data...</span>
+      </p>
+    </div>
   </ng-template>
 </div>

@@ -6,6 +6,7 @@ import { SatDataService, SatData } from '../../../services/sat-data.service';
 import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
 import { DataService } from '../../../services/data.service';
+import { PlatformService } from '../../../services/platform.service';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -22,6 +23,7 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
   dataLimits = [25, 50, 100, -1];
   chartData: any;
   chartOptions: any;
+  isBrowser!: boolean;
 
   startDate = '';
   endDate = '';
@@ -46,8 +48,11 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
     private satDataService: SatDataService,
     private filterService: FilterService,
     private dateRangeService: DateRangeService,
-    private dataService: DataService
-  ) {}
+    private dataService: DataService,
+    private platformService: PlatformService
+  ) {
+    this.isBrowser = this.platformService.isBrowser();
+  }
 
   ngOnInit(): void {
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
@@ -87,7 +92,16 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
     const source2 = this.dataIdentifier
       ? this.locationSource2Map[this.dataIdentifier] ?? null
       : null;
-    const satLetter = this.selectedFilter === 'ALL' ? null : this.selectedFilter;
+    
+    // Handle system-level filtering (GPS, NavIC, GLONASS) for plot view
+    let satLetter: string | null = null;
+    if (this.selectedFilter === 'ALL') {
+      satLetter = null; // Show all satellites
+    } else if (['GPS', 'NAVIC', 'GLONASS'].includes(this.selectedFilter)) {
+      satLetter = null; // Let all data come through, filter client-side later
+    } else {
+      satLetter = this.selectedFilter; // Specific satellite letter
+    }
 
     const search = this.searchQuery.trim();
 
@@ -115,7 +129,24 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
         );
 
     fetch$.subscribe((response) => {
-      this.data = response.content;
+      let filteredData = response.content;
+      
+      // Apply client-side filtering for system-level filters
+      if (this.selectedFilter === 'GPS') {
+        filteredData = response.content.filter(
+          (row) => row.satLetter?.toUpperCase().startsWith('G')
+        );
+      } else if (this.selectedFilter === 'NAVIC') {
+        filteredData = response.content.filter(
+          (row) => row.satLetter?.toUpperCase().startsWith('IR')
+        );
+      } else if (this.selectedFilter === 'GLONASS') {
+        filteredData = response.content.filter(
+          (row) => row.satLetter?.toUpperCase().startsWith('R')
+        );
+      }
+      
+      this.data = filteredData;
       this.updateChartData();
     });
   }
