@@ -2,9 +2,9 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
 import { BhubaneshwarComponent } from './bhubaneshwar.component';
-// Import the shared components
-import { PaginatedDataViewComponent } from '../../shared/views/paginated-data-view/paginated-data-view.component';
-import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
+// Import the fast shared components for better performance
+import { FastDataViewComponent } from '../../shared/views/fast-data-view/fast-data-view.component';
+import { FastPlotViewComponent } from '../../shared/views/fast-plot-view/fast-plot-view.component';
 
 const routes: Routes = [
   {
@@ -12,17 +12,17 @@ const routes: Routes = [
     component: BhubaneshwarComponent,
     children: [
       { path: '', redirectTo: 'data-view', pathMatch: 'full' },
-      // Use the shared PaginatedDataViewComponent for Bhubaneshwar's data view
+      // Use the fast FastDataViewComponent for Bhubaneshwar's data view
       {
         path: 'data-view',
-        component: PaginatedDataViewComponent,
+        component: FastDataViewComponent,
         data: { dataIdentifier: 'bhubaneshwar' }, // Pass 'bhubaneshwar' as identifier
       },
-      // Use the shared PlotViewComponent for Bhubaneshwar's plot view
+      // Use the fast FastPlotViewComponent for Bhubaneshwar's plot view
       {
         path: 'plot-view',
-        component: PlotViewComponent,
-        data: { dataType: 'specific', dataIdentifier: 'bhubaneshwar' }, // Pass 'bhubaneshwar' as identifier
+        component: FastPlotViewComponent,
+        data: { dataIdentifier: 'bhubaneshwar' }, // Pass 'bhubaneshwar' as identifier
       },
     ],
   },

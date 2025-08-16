@@ -1,0 +1,65 @@
+<div class="min-h-screen bg-slate-100 p-4">
+  <div class="bg-white rounded-2xl shadow-lg p-4">
+    <h1 class="text-lg font-semibold mb-4 text-slate-700">
+      {{ dataIdentifier ? (dataIdentifier | titlecase) + ' Plot View' : 'Plot View' }}
+    </h1>
+
+    <!-- Loading indicator -->
+    <div *ngIf="loading" class="flex justify-center items-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <span class="ml-2 text-gray-600">Loading data...</span>
+    </div>
+
+    <!-- Main content when not loading -->
+    <div *ngIf="!loading">
+      <!-- Controls -->
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        <!-- Data Limit Selector -->
+        <div class="flex items-center gap-2 text-sm">
+          <label for="dataLimitSelect">Show last:</label>
+          <select 
+            id="dataLimitSelect" 
+            [(ngModel)]="dataLimit" 
+            (change)="onDataLimitChange()"
+            class="border rounded px-2 py-1"
+          >
+            <option *ngFor="let limit of dataLimits" [value]="limit">
+              {{ limit === -1 ? 'All data' : limit + ' points' }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Data Summary -->
+        <div class="text-sm text-gray-600">
+          <span class="font-medium">{{ filteredData.length }}</span> data points
+          <span *ngIf="selectedFilter !== 'ALL'" class="text-blue-600 ml-1">
+            ({{ selectedFilter }} filtered)
+          </span>
+        </div>
+      </div>
+
+      <!-- Chart Container -->
+      <div class="bg-gray-50 rounded-lg p-4" style="height: 500px;">
+        <canvas 
+          *ngIf="chartData && filteredData.length > 0"
+          baseChart
+          [data]="chartData"
+          [options]="chartOptions"
+          type="line"
+          class="w-full h-full"
+        ></canvas>
+        
+        <!-- Empty state -->
+        <div *ngIf="filteredData.length === 0" class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <p class="text-lg">No data available</p>
+            <p class="text-sm">Try adjusting your filters or date range</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

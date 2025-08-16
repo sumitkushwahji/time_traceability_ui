@@ -43,7 +43,7 @@ export class PlotViewComponent implements OnInit, OnDestroy {
   isBrowser = false;
 
   constructor(
-    private dataService: SatDataService,
+    private satDataService: SatDataService,
     private filterService: FilterService,
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
@@ -70,7 +70,7 @@ export class PlotViewComponent implements OnInit, OnDestroy {
 
   fetchPlotData(): void {
     if (this.dataType === 'all') {
-      this.dataService.getPivotedSatDataForPlot().subscribe((data) => {
+      this.satDataService.getPivotedSatDataForPlot().subscribe((data: SatData2[]) => {
         this.rawData = data;
         this.filteredData = data;
         
@@ -79,7 +79,7 @@ export class PlotViewComponent implements OnInit, OnDestroy {
         this.applyFilter(currentFilter);
       });
     } else if (this.dataType === 'specific' && this.dataIdentifier) {
-      this.dataService.getPivotedSatDataForPlot(this.dataIdentifier).subscribe((data) => {
+      this.satDataService.getPivotedSatDataForPlot(this.dataIdentifier).subscribe((data: SatData2[]) => {
         this.rawData = data;
         this.filteredData = data;
         

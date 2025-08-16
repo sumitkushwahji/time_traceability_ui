@@ -1,10 +1,9 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { BangaloreComponent } from './bangalore.component';
-// Import the shared components
-import { PaginatedDataViewComponent } from '../../shared/views/paginated-data-view/paginated-data-view.component';
-import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
-import { PaginatedPlotViewComponent } from '../../shared/views/paginated-plot-view/paginated-plot-view.component';
+// Import the fast shared components for better performance
+import { FastDataViewComponent } from '../../shared/views/fast-data-view/fast-data-view.component';
+import { FastPlotViewComponent } from '../../shared/views/fast-plot-view/fast-plot-view.component';
 
 const routes: Routes = [
   {
@@ -12,17 +11,17 @@ const routes: Routes = [
     component: BangaloreComponent,
     children: [
       { path: '', redirectTo: 'data-view', pathMatch: 'full' },
-      // Use the shared PaginatedDataViewComponent for Bangalore's data view
+      // Use the fast FastDataViewComponent for Bangalore's data view
       {
         path: 'data-view',
-        component: PaginatedDataViewComponent,
+        component: FastDataViewComponent,
         data: { dataIdentifier: 'bangalore' }, // Pass 'bangalore' as identifier
       },
-      // Use the shared PlotViewComponent for Bangalore's plot view
+      // Use the fast FastPlotViewComponent for Bangalore's plot view
       {
         path: 'plot-view',
-        component: PaginatedPlotViewComponent,
-        data: { dataType: 'specific', dataIdentifier: 'bangalore' }, // Pass 'bangalore' as identifier
+        component: FastPlotViewComponent,
+        data: { dataIdentifier: 'bangalore' }, // Pass 'bangalore' as identifier
       },
     ],
   },

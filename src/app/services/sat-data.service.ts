@@ -33,6 +33,8 @@ export interface SatData2 {
 export class SatDataService {
   private readonly baseUrl = `${environment.apiBaseUrl}/sat-differences`;
   private readonly baseUrl2 = environment.apiBaseUrl; // Often used for common base URL
+  private readonly optimizedUrl = `${environment.apiBaseUrl}/optimized-sat-differences`;
+  private readonly bulkUrl = `${environment.apiBaseUrl}/bulk-location-data`;
 
   constructor(private http: HttpClient) {}
 
@@ -159,6 +161,67 @@ export class SatDataService {
 
     return this.http.get<SatData2[]>(
       `${this.baseUrl2}/sat-differences-pivoted`, // Use your actual endpoint for plot data
+      { params }
+    );
+  }
+
+  // 🚀 NEW OPTIMIZED METHODS FOR PERFORMANCE
+
+  /**
+   * Get bulk data for location - optimized for fast loading
+   * Uses new backend endpoint that returns all data at once
+   */
+  getBulkLocationData(
+    source2: string[],
+    startDate?: string,
+    endDate?: string
+  ): Observable<{ data: SatData[]; totalElements: number; cached: boolean }> {
+    let params = new HttpParams();
+    
+    // Add source2 array as multiple parameters
+    source2.forEach(location => {
+      params = params.append('source2', location);
+    });
+    
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+
+    return this.http.get<{ data: SatData[]; totalElements: number; cached: boolean }>(
+      this.bulkUrl, 
+      { params }
+    );
+  }
+
+  /**
+   * Get optimized paginated data using indexed columns only
+   */
+  getOptimizedSatData(
+    source2: string[],
+    page: number,
+    size: number,
+    sortBy: string = 'mjdDateTime',
+    sortDirection: string = 'desc',
+    startDate?: string,
+    endDate?: string,
+    satLetter?: string | null
+  ): Observable<{ content: SatData[]; totalElements: number }> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', sortBy)
+      .set('sortDirection', sortDirection);
+
+    // Add source2 array as multiple parameters
+    source2.forEach(location => {
+      params = params.append('source2', location);
+    });
+
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate) params = params.set('endDate', endDate);
+    if (satLetter && satLetter !== 'ALL') params = params.set('satLetter', satLetter);
+
+    return this.http.get<{ content: SatData[]; totalElements: number }>(
+      this.optimizedUrl,
       { params }
     );
   }

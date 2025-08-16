@@ -1,9 +1,9 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DrcComponent } from './drc.component';
-// Import the shared components
-import { PaginatedDataViewComponent } from '../../shared/views/paginated-data-view/paginated-data-view.component';
-import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
+// Import the fast shared components for better performance
+import { FastDataViewComponent } from '../../shared/views/fast-data-view/fast-data-view.component';
+import { FastPlotViewComponent } from '../../shared/views/fast-plot-view/fast-plot-view.component';
 
 const routes: Routes = [
   {
@@ -11,17 +11,17 @@ const routes: Routes = [
     component: DrcComponent,
     children: [
       { path: '', redirectTo: 'data-view', pathMatch: 'full' },
-      // Use the shared PaginatedDataViewComponent for DRC's data view
+      // Use the fast FastDataViewComponent for DRC's data view
       {
         path: 'data-view',
-        component: PaginatedDataViewComponent,
+        component: FastDataViewComponent,
         data: { dataIdentifier: 'drc' }, // Pass 'drc' as identifier
       },
-      // Use the shared PlotViewComponent for DRC's plot view
+      // Use the fast FastPlotViewComponent for DRC's plot view
       {
         path: 'plot-view',
-        component: PlotViewComponent,
-        data: { dataType: 'specific', dataIdentifier: 'drc' }, // Pass 'drc' as identifier
+        component: FastPlotViewComponent,
+        data: { dataIdentifier: 'drc' }, // Pass 'drc' as identifier
       },
     ],
   },
