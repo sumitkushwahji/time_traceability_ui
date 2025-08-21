@@ -35,7 +35,7 @@ export class PlotViewComponent implements OnInit, OnDestroy {
       legend: { display: true, position: 'top' },
     },
     scales: {
-      x: { title: { display: true, text: 'MJD DateTime' } },
+      x: { title: { display: true, text: 'Time (Indian Standard Time)' } },
       y: { title: { display: true, text: 'RefSys Diff' } },
     },
   };

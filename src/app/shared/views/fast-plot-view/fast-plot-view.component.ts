@@ -39,8 +39,8 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   chartData: any;
   chartOptions: any;
   
-  // Data display limits
-  dataLimit = 50;
+  // Data display limits - default to all data to show complete dataset
+  dataLimit = -1;
   dataLimits = [25, 50, 100, 200, -1]; // -1 means all data
   
   // Filtering
@@ -260,10 +260,10 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       new Date(a.mjdDateTime).getTime() - new Date(b.mjdDateTime).getTime()
     );
 
-    // Apply data limit (slice the data if limit is set)
-    const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(0, this.dataLimit);
+    // Apply data limit - take last N points to show latest data on right side
+    const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
 
-    console.log(`📈 Preparing chart with ${sliced.length} data points (limit: ${this.dataLimit})`);
+    console.log(`📈 Preparing chart with ${sliced.length} data points (limit: ${this.dataLimit}, showing latest data)`);
 
     // Group by source2 for plotting separate lines per location
     const source2Groups: { [key: string]: SatData[] } = {};
@@ -281,9 +281,9 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       satellites: [...new Set(source2Groups[key].map(item => item.satLetter))]
     })));
 
-    // Create labels using sttime (start time) as requested
+    // Create labels using IST datetime format like Link Stability
     this.chartData = {
-      labels: sliced.map(d => d.sttime), // Using sttime for x-axis as requested
+      labels: sliced.map(d => new Date(d.mjdDateTime).toLocaleString()), // Using IST datetime format
       datasets: Object.keys(source2Groups).map(source2 => {
         const source2Data = source2Groups[source2];
         const color = this.getColorForSource2(source2);
@@ -348,10 +348,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
           display: true,
           title: {
             display: true,
-            text: 'Start Time (sttime)',
-          },
-          ticks: {
-            maxTicksLimit: 8,
+            text: 'Time (Indian Standard Time)',
           },
         },
         y: {
