@@ -1,0 +1,432 @@
+<!-- File Upload Statistics Dashboard -->
+<div class="file-upload-dashboard p-6 bg-gray-50 min-h-screen">
+  <!-- Header -->
+  <div class="mb-6">
+    <h2 class="text-3xl font-bold text-gray-900">File Upload Statistics Dashboard</h2>
+    <p class="text-gray-600">Comprehensive insights into file uploads, processing performance, and data availability by location</p>
+  </div>
+  
+  <!-- Filters -->
+  <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Report Filters</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="startDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="endDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="flex items-end">
+        <button 
+          (click)="loadStatistics()"
+          [disabled]="loading"
+          class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+          {{loading ? 'Loading...' : 'Generate Report'}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+    {{error}}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <p class="ml-3 text-gray-600">Loading file upload statistics...</p>
+  </div>
+
+  <!-- Report Content -->
+  <div *ngIf="statsData && !loading">
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Files -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Total Files</h3>
+            <p class="text-2xl font-bold text-blue-600">{{formatNumber(statsData.summary.totalFiles)}}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Records -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Total Records</h3>
+            <p class="text-2xl font-bold text-green-600">{{formatNumber(statsData.summary.totalRecords)}}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Average Quality -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Average Quality</h3>
+            <p class="text-2xl font-bold text-purple-600">{{statsData.summary.averageQuality | number:'1.1-1'}}%</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Unique Locations -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Active Locations</h3>
+            <p class="text-2xl font-bold text-orange-600">{{statsData.summary.uniqueLocations}}</p>
+          </div>
+          <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="bg-white rounded-lg shadow-sm border overflow-hidden mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8 px-6">
+          <button 
+            *ngFor="let tab of [
+              {id: 'overview', name: 'Overview', icon: 'M4 6h16M4 12h16M4 18h16'},
+              {id: 'daily', name: 'Daily Trends', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'},
+              {id: 'locations', name: 'Locations', icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z'},
+              {id: 'performance', name: 'Performance', icon: 'M13 10V3L4 14h7v7l9-11h-7z'},
+              {id: 'missing', name: 'Missing Files', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z'},
+              {id: 'recent', name: 'Recent', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}
+            ]"
+            (click)="setActiveTab(tab.id)"
+            [class]="activeTab === tab.id 
+              ? 'border-blue-500 text-blue-600 py-4 px-1 border-b-2 font-medium text-sm flex items-center'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 py-4 px-1 border-b-2 font-medium text-sm flex items-center'"
+          >
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" [attr.d]="tab.icon"></path>
+            </svg>
+            {{tab.name}}
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    
+    <!-- Overview Tab -->
+    <div *ngIf="activeTab === 'overview'">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Daily Trends Chart -->
+        <div class="bg-white rounded-lg shadow border p-6">
+          <h3 class="text-lg font-semibold mb-4">Daily Upload Trends</h3>
+          <div class="h-64">
+            <canvas baseChart
+              [data]="dailyTrendsChart"
+              [options]="lineChartOptions"
+              type="line">
+            </canvas>
+          </div>
+        </div>
+        
+        <!-- Location Distribution Chart -->
+        <div class="bg-white rounded-lg shadow border p-6">
+          <h3 class="text-lg font-semibold mb-4">Upload Distribution by Location</h3>
+          <div class="h-64">
+            <canvas baseChart
+              [data]="locationDistributionChart"
+              [options]="barChartOptions"
+              type="bar">
+            </canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- File Type Distribution -->
+        <div class="bg-white rounded-lg shadow border p-6">
+          <h3 class="text-lg font-semibold mb-4">File Type Distribution</h3>
+          <div class="h-64">
+            <canvas baseChart
+              [data]="fileTypeChart"
+              [options]="doughnutChartOptions"
+              type="doughnut">
+            </canvas>
+          </div>
+        </div>
+        
+        <!-- Hourly Upload Patterns -->
+        <div class="bg-white rounded-lg shadow border p-6">
+          <h3 class="text-lg font-semibold mb-4">Upload Patterns by Hour</h3>
+          <div class="h-64">
+            <canvas baseChart
+              [data]="hourlyPatternChart"
+              [options]="barChartOptions"
+              type="bar">
+            </canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Trends Tab -->
+    <div *ngIf="activeTab === 'daily'">
+      <div class="bg-white rounded-lg shadow border overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Daily Upload Statistics</h3>
+          <button 
+            (click)="exportDailyStats()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            Export CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locations</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Quality</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completeness</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let day of statsData.dailyStats" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {{day.uploadDate | date:'shortDate'}}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(day.fileCount)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(day.totalRecords)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{day.uniqueLocations}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{day.averageQuality | number:'1.1-1'}}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                      <div class="bg-blue-600 h-2 rounded-full" [style.width.%]="day.completenessPercentage"></div>
+                    </div>
+                    <span class="text-sm text-gray-500">{{day.completenessPercentage | number:'1.0-0'}}%</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Locations Tab -->
+    <div *ngIf="activeTab === 'locations'">
+      <div class="bg-white rounded-lg shadow border overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Location Upload Statistics</h3>
+          <button 
+            (click)="exportLocationStats()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            Export CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Code</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Upload</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let location of statsData.locationStats" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{location.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{location.source2Code}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(location.fileCount)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(location.totalRecords)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{location.successRate | number:'1.1-1'}}%</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDateTime(location.lastUpload)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' + getStatusClass(location.status)">
+                    {{location.status}}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Tab -->
+    <div *ngIf="activeTab === 'performance'">
+      <div class="mb-6">
+        <div class="bg-white rounded-lg shadow border p-6">
+          <h3 class="text-lg font-semibold mb-4">Processing Performance by Location</h3>
+          <div class="h-64">
+            <canvas baseChart
+              [data]="performanceChart"
+              [options]="barChartOptions"
+              type="bar">
+            </canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow border overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Performance Metrics</h3>
+          <button 
+            (click)="exportPerformanceStats()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            Export CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Time</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Size</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lines Skipped</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let perf of statsData.performanceStats" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{perf.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(perf.fileCount)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDuration(perf.averageProcessingTime)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize(perf.averageFileSizeMB)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(perf.totalLinesSkipped)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' + getPerformanceGradeClass(perf.performanceGrade)">
+                    {{perf.performanceGrade}}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Missing Files Tab -->
+    <div *ngIf="activeTab === 'missing'">
+      <div class="bg-white rounded-lg shadow border overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Missing Files Analysis</h3>
+          <button 
+            (click)="exportMissingFiles()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            Export CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MJD</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected File</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Missing</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let missing of statsData.missingFiles" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{missing.mjd}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{missing.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{missing.expectedFileName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{missing.daysMissing}}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' + getSeverityClass(missing.severity)">
+                    {{missing.severity}}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Uploads Tab -->
+    <div *ngIf="activeTab === 'recent'">
+      <div class="bg-white rounded-lg shadow border overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+          <h3 class="text-lg font-semibold text-gray-900">Recent File Uploads</h3>
+          <button 
+            (click)="exportRecentUploads()"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+            Export CSV
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MJD</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Time</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quality</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processing Time</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr *ngFor="let upload of statsData.recentUploads" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{upload.fileName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{upload.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{upload.mjd}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDateTime(upload.uploadTimestamp)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(upload.totalRecords)}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{upload.qualityScore | number:'1.1-1'}}%</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span [class]="'px-2 inline-flex text-xs leading-5 font-semibold rounded-full ' + getStatusClass(upload.fileStatus)">
+                    {{upload.fileStatus}}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDuration(upload.processingTimeMs)}}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

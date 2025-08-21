@@ -7,6 +7,7 @@ import { BhubaneshwarComponent } from './pages/bhubaneshwar/bhubaneshwar.compone
 import { FaridabadComponent } from './pages/faridabad/faridabad.component';
 import { GuwahatiComponent } from './pages/guwahati/guwahati.component';
 import { DrcComponent } from './pages/drc/drc.component';
+import { FileUploadDashboardComponent } from './shared/file-upload-dashboard/file-upload-dashboard.component';
 
 export const routes: Routes = [
   {
@@ -71,6 +72,10 @@ export const routes: Routes = [
         path: 'shared',
         loadChildren: () =>
           import('./shared/views/shared-views.module').then((m) => m.SharedViewsModule),
+      },
+      {
+        path: 'file-upload-stats',
+        component: FileUploadDashboardComponent,
       },
     ],
   },

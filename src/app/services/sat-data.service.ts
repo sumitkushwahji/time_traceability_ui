@@ -31,10 +31,10 @@ export interface SatData2 {
   providedIn: 'root',
 })
 export class SatDataService {
-  private readonly baseUrl = `${environment.apiBaseUrl}/sat-differences`;
-  private readonly baseUrl2 = environment.apiBaseUrl; // Often used for common base URL
-  private readonly optimizedUrl = `${environment.apiBaseUrl}/optimized-sat-differences`;
-  private readonly bulkUrl = `${environment.apiBaseUrl}/bulk-location-data`;
+  private readonly baseUrl = `${environment.apiBaseUrl}/data/sat-differences`;
+  private readonly baseUrl2 = `${environment.apiBaseUrl}/data`; // Often used for common base URL
+  private readonly optimizedUrl = `${environment.apiBaseUrl}/data/optimized-sat-differences`;
+  private readonly bulkUrl = `${environment.apiBaseUrl}/data/bulk-location-data`;
 
   constructor(private http: HttpClient) {}
 
