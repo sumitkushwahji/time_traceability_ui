@@ -280,48 +280,49 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
 
     console.log(`🔍 Link Stability: Applying filters to ${this.rawData.length} records with filter: "${this.selectedFilter}"`);
     
-    // Use the exact same filtering logic as fast-plot-view
-    let filtered: SatData[];
-    
-    if (this.selectedFilter === 'ALL' || this.selectedFilter === 'all') {
-      filtered = this.rawData;
-      console.log(`📋 Showing ALL data: ${filtered.length} records`);
-    } else if (this.selectedFilter === 'GPS' || this.selectedFilter === 'gps') {
-      // Filter for GPS satellites - satLetter starts with 'G'
-      filtered = this.rawData.filter(item => item.satLetter.startsWith('G'));
-      console.log(`🛰️ GPS filter: ${filtered.length} records (satLetter starts with 'G')`);
-    } else if (this.selectedFilter === 'NAVIC' || this.selectedFilter === 'navic') {
-      // Filter for NavIC satellites - satLetter starts with 'I'
-      filtered = this.rawData.filter(item => item.satLetter.startsWith('I'));
-      console.log(`🇮🇳 NAVIC filter: ${filtered.length} records (satLetter starts with 'I')`);
-    } else if (this.selectedFilter === 'GLONASS' || this.selectedFilter === 'glonass') {
-      // Filter for GLONASS satellites - satLetter starts with 'R'
-      filtered = this.rawData.filter(item => item.satLetter.startsWith('R'));
-      console.log(`🇷🇺 GLONASS filter: ${filtered.length} records (satLetter starts with 'R')`);
-    } else {
-      // For specific satellite filtering, filter by exact satellite letter
-      filtered = this.rawData.filter(item => 
-        item.satLetter === this.selectedFilter ||
-        item.satLetter.toLowerCase() === this.selectedFilter.toLowerCase()
-      );
-      console.log(`🎯 Specific satellite filter "${this.selectedFilter}": ${filtered.length} records`);
+    // Use EXACTLY the same filtering logic as fast-plot-view
+    let filtered = [...this.rawData];
+
+    console.log(`� Starting with ${filtered.length} total records`);
+
+    // Apply satellite filter using EXACT SAME LOGIC as Plot View
+    if (this.selectedFilter && this.selectedFilter !== 'ALL') {
+      const beforeCount = filtered.length;
+      // Fixed NAVIC filtering - exact match instead of startsWith (SAME AS PLOT VIEW)
+      if (this.selectedFilter === 'NAVIC') {
+        filtered = filtered.filter(item => item.satLetter === 'NAVIC');
+      } else {
+        filtered = filtered.filter(item => item.satLetter === this.selectedFilter);
+      }
+      console.log(`🛰️  Satellite filter (${this.selectedFilter}): ${beforeCount} → ${filtered.length} records`);
     }
 
     // Apply date range filter
-    if (this.startDate || this.endDate) {
-      const beforeFilter = filtered.length;
+    if (this.startDate && this.endDate) {
+      const beforeCount = filtered.length;
+      const start = new Date(this.startDate).getTime();
+      const end = new Date(this.endDate).getTime();
       filtered = filtered.filter(item => {
-        const itemDate = new Date(item.mjdDateTime);
-        const start = this.startDate ? new Date(this.startDate) : null;
-        const end = this.endDate ? new Date(this.endDate) : null;
-        
-        if (start && itemDate < start) return false;
-        if (end && itemDate > end) return false;
-        
-        return true;
+        const itemDate = new Date(item.mjdDateTime).getTime();
+        return itemDate >= start && itemDate <= end;
       });
-      console.log(`Date filter (${this.startDate} - ${this.endDate}): ${beforeFilter} → ${filtered.length} records`);
+      console.log(`📅 Date filter: ${beforeCount} → ${filtered.length} records`);
     }
+
+    // Debug: Show unique satellite letters in filtered data (SAME AS PLOT VIEW)
+    const uniqueSatLetters = [...new Set(filtered.map(item => item.satLetter))];
+    console.log('🛰️  Unique satellite letters available:', uniqueSatLetters);
+
+    // Debug: Show unique source2 values in filtered data (SAME AS PLOT VIEW)
+    const uniqueSource2 = [...new Set(filtered.map(item => item.source2))];
+    console.log('📍 Unique source2 values available:', uniqueSource2);
+
+    // Debug: Count by satellite type (SAME AS PLOT VIEW)
+    const satelliteCounts = uniqueSatLetters.map(satLetter => ({
+      satLetter,
+      count: filtered.filter(item => item.satLetter === satLetter).length
+    }));
+    console.log('📊 Satellite counts:', satelliteCounts);
 
     // Store filtered data without applying data limit (same as Plot View)
     this.filteredData = filtered;
