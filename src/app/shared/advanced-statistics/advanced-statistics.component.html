@@ -1,0 +1,503 @@
+<!-- Advanced Statistics Component -->
+<div class="advanced-statistics-container p-6 bg-gray-50 min-h-screen">
+  
+  <!-- Header Section -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">Advanced Data Statistics</h1>
+    <p class="text-gray-600">Comprehensive analysis of satellite data availability across locations and time periods</p>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Date Range -->
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Start Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="startDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">End Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="endDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      
+      <!-- Time Unit -->
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">Time Unit</label>
+        <select 
+          [(ngModel)]="timeUnit"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option *ngFor="let unit of timeUnits" [value]="unit">{{unit}}</option>
+        </select>
+      </div>
+      
+      <!-- Apply Filters Button -->
+      <div class="flex items-end">
+        <button 
+          (click)="applyFilters()"
+          [disabled]="loading"
+          class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+          <span *ngIf="!loading">Apply Filters</span>
+          <span *ngIf="loading">Loading...</span>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Location and Satellite Filters -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Locations</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label *ngFor="let location of (matrixData?.locations || availableLocations)" class="flex items-center space-x-2">
+            <input 
+              type="checkbox" 
+              [checked]="selectedLocations.includes(location)"
+              (change)="onLocationChange(location, $event)"
+              class="rounded text-blue-600">
+            <span class="text-sm">{{location}}</span>
+          </label>
+        </div>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Satellites</label>
+        <div class="grid grid-cols-3 gap-2">
+          <label *ngFor="let satellite of (matrixData?.satellites || availableSatellites)" class="flex items-center space-x-2">
+            <input 
+              type="checkbox" 
+              [checked]="selectedSatellites.includes(satellite)"
+              (change)="onSatelliteChange(satellite, $event)"
+              class="rounded text-blue-600">
+            <span class="text-sm">{{satellite}}</span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+    <p class="font-medium">Error:</p>
+    <p>{{error}}</p>
+  </div>
+
+  <!-- Tab Navigation -->
+  <div class="bg-white rounded-lg shadow-sm border mb-6">
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8">
+        <button 
+          *ngFor="let tab of ['matrix', 'locations', 'satellites', 'trends', 'quality']"
+          (click)="setActiveTab(tab)"
+          [class]="activeTab === tab ? 
+            'border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm' :
+            'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'">
+          {{tab === 'matrix' ? 'Data Matrix' : 
+            tab === 'locations' ? 'Locations' :
+            tab === 'satellites' ? 'Satellites' :
+            tab === 'trends' ? 'Trends' :
+            'Quality'}}
+        </button>
+      </nav>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="p-6">
+      
+      <!-- Data Availability Matrix Tab -->
+      <div *ngIf="activeTab === 'matrix'">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Data Availability Matrix</h3>
+          <button 
+            *ngIf="matrixData"
+            (click)="exportMatrix()"
+            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+            Export CSV
+          </button>
+        </div>
+        
+        <!-- Loading State -->
+        <div *ngIf="loading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading matrix data...</p>
+        </div>
+        
+        <!-- Matrix Display -->
+        <div *ngIf="matrixData && !loading">
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-blue-900">Total Records</h4>
+              <p class="text-2xl font-bold text-blue-600">{{formatNumber(matrixData.summary?.totalRecords || 0)}}</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-green-900">Locations</h4>
+              <p class="text-2xl font-bold text-green-600">{{matrixData.summary?.uniqueLocations || 0}}</p>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-purple-900">Satellites</h4>
+              <p class="text-2xl font-bold text-purple-600">{{matrixData.summary?.uniqueSatellites || 0}}</p>
+            </div>
+            <div class="bg-orange-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-orange-900">Completeness</h4>
+              <p class="text-2xl font-bold text-orange-600">{{matrixData.summary?.overallCompleteness?.toFixed(1) || 0}}%</p>
+            </div>
+          </div>
+          
+          <!-- Completeness Chart -->
+          <div class="mb-6">
+            <div class="bg-white p-4 rounded-lg border">
+              <h4 class="text-md font-medium text-gray-900 mb-4">Data Completeness Overview</h4>
+              <div class="max-w-md mx-auto">
+                <canvas baseChart
+                  [data]="completenessChartData"
+                  type="doughnut">
+                </canvas>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Satellite Legend -->
+          <div class="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3">Satellite Systems Legend</h4>
+            <div class="flex flex-wrap gap-3">
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box gps">G</div>
+                <span class="text-sm text-gray-600">GPS</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box navic">N</div>
+                <span class="text-sm text-gray-600">NAVIC</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box galileo">E</div>
+                <span class="text-sm text-gray-600">Galileo</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box glonass">R</div>
+                <span class="text-sm text-gray-600">GLONASS</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box beidou">C</div>
+                <span class="text-sm text-gray-600">BeiDou</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="satellite-box qzss">Q</div>
+                <span class="text-sm text-gray-600">QZSS</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Enhanced Matrix Visualization -->
+          <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <!-- Header with Reference Systems -->
+            <div class="border-b border-gray-200 bg-gray-50">
+              <div class="grid" [style.grid-template-columns]="'200px repeat(' + matrixData.referenceSystems.length + ', 1fr)'">
+                <div class="px-4 py-3 text-sm font-semibold text-gray-700 border-r border-gray-200">
+                  Location / Reference System
+                </div>
+                <div *ngFor="let refSys of matrixData.referenceSystems" 
+                     class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0">
+                  {{refSys}}
+                </div>
+              </div>
+            </div>
+
+            <!-- Matrix Body -->
+            <div class="overflow-x-auto">
+              <div *ngFor="let location of matrixData.locations; let locationIndex = index" 
+                   class="border-b border-gray-200 last:border-b-0">
+                
+                <!-- Location Header Row -->
+                <div class="grid bg-blue-50" [style.grid-template-columns]="'200px repeat(' + matrixData.referenceSystems.length + ', 1fr)'">
+                  <div class="px-4 py-2 text-sm font-bold text-blue-700 border-r border-gray-200 flex items-center">
+                    <span class="capitalize">{{location}}</span>
+                  </div>
+                  <div *ngFor="let refSys of matrixData.referenceSystems" 
+                       class="px-2 py-2 border-r border-gray-200 last:border-r-0">
+                    <!-- This cell will contain satellite indicators -->
+                  </div>
+                </div>
+
+                <!-- Time Period Rows for this Location -->
+                <div *ngFor="let timePeriod of matrixData.timePeriods; let timeIndex = index" 
+                     class="grid" [style.grid-template-columns]="'200px repeat(' + matrixData.referenceSystems.length + ', 1fr)'"
+                     [class]="timeIndex % 2 === 0 ? 'bg-white' : 'bg-gray-25'">
+                  
+                  <!-- Time Period Label -->
+                  <div class="px-4 py-3 text-xs text-gray-600 border-r border-gray-200 flex items-center">
+                    {{formatDate(timePeriod)}}
+                  </div>
+
+                  <!-- Reference System Cells -->
+                  <div *ngFor="let refSys of matrixData.referenceSystems"
+                       class="px-2 py-2 border-r border-gray-200 last:border-r-0 min-h-[60px] flex items-center justify-center">
+                    
+                    <div class="w-full">
+                      <!-- Satellite Indicators Container -->
+                      <div *ngIf="matrixData.matrix[location] && matrixData.matrix[location][refSys] && matrixData.matrix[location][refSys][timePeriod] && matrixData.matrix[location][refSys][timePeriod].hasData"
+                           class="grid grid-cols-2 gap-1 w-full">
+                        
+                        <!-- Individual Satellite Boxes -->
+                        <div *ngFor="let satellite of matrixData.matrix[location][refSys][timePeriod].satellites"
+                             class="satellite-box"
+                             [class]="getSatelliteBoxClass(satellite)"
+                             [title]="'Satellite: ' + satellite + ' | Records: ' + (matrixData.matrix[location][refSys][timePeriod].satelliteData?.[satellite] || 0)">
+                          <span class="text-xs font-bold">{{satellite}}</span>
+                        </div>
+                        
+                        <!-- Empty boxes for missing satellites -->
+                        <div *ngFor="let i of getEmptyBoxes(matrixData.matrix[location][refSys][timePeriod].satellites.length)"
+                             class="satellite-box bg-gray-100 border-gray-300">
+                          <span class="text-xs text-gray-400">-</span>
+                        </div>
+                      </div>
+                      
+                      <!-- No Data Available -->
+                      <div *ngIf="!matrixData.matrix[location] || !matrixData.matrix[location][refSys] || !matrixData.matrix[location][refSys][timePeriod] || !matrixData.matrix[location][refSys][timePeriod].hasData"
+                           class="text-center text-gray-400 text-xs py-4">
+                        No Data
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date Range Footer -->
+            <div class="border-t border-gray-200 bg-gray-50 px-4 py-2">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gray-600">Date Range:</span>
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm font-medium">{{matrixData.startDate | date:'short'}}</span>
+                  <span class="text-gray-400">→</span>
+                  <span class="text-sm font-medium">{{matrixData.endDate | date:'short'}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Legend -->
+          <div class="mt-4 flex flex-wrap items-center gap-4 text-sm">
+            <div class="flex items-center space-x-2">
+              <div class="w-4 h-4 bg-green-100 border rounded"></div>
+              <span>Complete (>90%)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="w-4 h-4 bg-yellow-100 border rounded"></div>
+              <span>Partial (70-90%)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <div class="w-4 h-4 bg-red-100 border rounded"></div>
+              <span>Missing (<70%)</span>
+            </div>
+            <div class="text-gray-600 ml-4">
+              <span class="font-medium">Format:</span> Records (Satellites)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Locations Tab -->
+      <div *ngIf="activeTab === 'locations'">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Location Statistics</h3>
+          <button 
+            *ngIf="locationStats.length > 0"
+            (click)="exportLocationStats()"
+            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+            Export CSV
+          </button>
+        </div>
+        
+        <div *ngIf="loading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading location statistics...</p>
+        </div>
+        
+        <div *ngIf="locationStats.length > 0 && !loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div *ngFor="let location of locationStats" class="bg-white border rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="text-lg font-semibold text-gray-900">{{location.displayName}}</h4>
+              <span [class]="getStatusBadgeClass(location.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{location.status}}
+              </span>
+            </div>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Total Records:</span>
+                <span class="font-medium">{{formatNumber(location.totalRecords)}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Completeness:</span>
+                <span class="font-medium">{{location.completeness?.toFixed(1) || 0}}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Satellites:</span>
+                <span class="font-medium">{{location.satellites?.length || 0}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">First Data:</span>
+                <span class="font-medium text-xs">{{formatDate(location.firstData)}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Last Data:</span>
+                <span class="font-medium text-xs">{{formatDate(location.lastData)}}</span>
+              </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-gray-200">
+              <p class="text-sm text-gray-600 mb-2">Satellite Distribution:</p>
+              <div class="flex flex-wrap gap-1">
+                <span *ngFor="let sat of location.satellites" 
+                      class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                  {{sat}} ({{location.satelliteCount[sat] || 0}})
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Satellites Tab -->
+      <div *ngIf="activeTab === 'satellites'">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-semibold text-gray-900">Satellite Coverage</h3>
+          <button 
+            *ngIf="satelliteStats.length > 0"
+            (click)="exportSatelliteStats()"
+            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+            Export CSV
+          </button>
+        </div>
+        
+        <div *ngIf="loading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading satellite statistics...</p>
+        </div>
+        
+        <!-- Satellite Chart -->
+        <div *ngIf="satelliteStats.length > 0 && !loading" class="mb-6">
+          <div class="bg-white p-4 rounded-lg border">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Satellite Records Distribution</h4>
+            <canvas baseChart
+              [data]="satelliteChartData"
+              type="bar">
+            </canvas>
+          </div>
+        </div>
+        
+        <div *ngIf="satelliteStats.length > 0 && !loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div *ngFor="let satellite of satelliteStats" class="bg-white border rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h4 class="text-lg font-semibold text-gray-900">{{satellite.satelliteSystem}}</h4>
+                <p class="text-sm text-gray-600">{{satellite.satelliteLetter}}</p>
+              </div>
+              <span [class]="getStatusBadgeClass(satellite.healthStatus)" class="px-2 py-1 rounded-full text-xs font-medium">
+                {{satellite.healthStatus}}
+              </span>
+            </div>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Total Records:</span>
+                <span class="font-medium">{{formatNumber(satellite.totalRecords)}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Coverage:</span>
+                <span class="font-medium">{{satellite.coveragePercentage?.toFixed(1) || 0}}%</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Locations:</span>
+                <span class="font-medium">{{satellite.locations?.length || 0}}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Avg Quality:</span>
+                <span class="font-medium">{{satellite.avgSignalQuality?.toFixed(2) || 0}}</span>
+              </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-gray-200">
+              <p class="text-sm text-gray-600 mb-2">Location Coverage:</p>
+              <div class="flex flex-wrap gap-1">
+                <span *ngFor="let loc of satellite.locations" 
+                      class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded">
+                  {{loc}} ({{satellite.locationCounts[loc] || 0}})
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trends Tab -->
+      <div *ngIf="activeTab === 'trends'">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Time Trends Analysis</h3>
+        
+        <div *ngIf="loading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading trend analysis...</p>
+        </div>
+        
+        <div *ngIf="timeTrends && !loading">
+          <div class="bg-white p-6 rounded-lg border">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Data Trends Over Time</h4>
+            <canvas baseChart
+              [data]="trendsChartData"
+              [options]="trendsChartOptions"
+              type="line">
+            </canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quality Tab -->
+      <div *ngIf="activeTab === 'quality'">
+        <h3 class="text-lg font-semibold text-gray-900 mb-6">Data Quality Metrics</h3>
+        
+        <div *ngIf="loading" class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Loading quality metrics...</p>
+        </div>
+        
+        <div *ngIf="dataQuality && !loading">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-blue-900">Overall Score</h4>
+              <p class="text-2xl font-bold text-blue-600">{{dataQuality.overallScore?.toFixed(1) || 0}}/100</p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-green-900">Valid Records</h4>
+              <p class="text-2xl font-bold text-green-600">{{formatNumber(dataQuality?.validRecords || 0)}}</p>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-red-900">Error Records</h4>
+              <p class="text-2xl font-bold text-red-600">{{formatNumber(dataQuality?.errorRecords || 0)}}</p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-yellow-900">Accuracy</h4>
+              <p class="text-2xl font-bold text-yellow-600">{{dataQuality.averageAccuracy?.toFixed(1) || 0}}%</p>
+            </div>
+          </div>
+          
+          <div *ngIf="dataQuality && dataQuality.recommendations && dataQuality.recommendations.length > 0" class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h4 class="text-md font-medium text-amber-900 mb-2">Recommendations</h4>
+            <ul class="list-disc list-inside space-y-1">
+              <li *ngFor="let rec of dataQuality.recommendations" class="text-sm text-amber-800">{{rec}}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+</div>

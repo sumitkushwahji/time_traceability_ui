@@ -1,0 +1,564 @@
+<!-- Data Availability Dashboard -->
+<div class="data-availability-dashboard p-6 bg-gray-50 min-h-screen">
+  <!-- Header -->
+  <div class="mb-6">
+    <h2 class="text-3xl font-bold text-gray-900">Data Availability Dashboard</h2>
+    <p class="text-gray-600">Complete picture of satellite data uploads, gaps, and availability</p>
+  </div>
+  
+  <!-- Filters -->
+  <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Report Filters</h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="startDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+        <input 
+          type="datetime-local" 
+          [(ngModel)]="endDate"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="flex items-end">
+        <button 
+          (click)="loadReport()"
+          [disabled]="loading"
+          class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+          {{loading ? 'Loading...' : 'Generate Report'}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+    {{error}}
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <p class="ml-3 text-gray-600">Loading comprehensive report...</p>
+  </div>
+
+  <!-- Report Content -->
+  <div *ngIf="report && !loading">
+    
+    <!-- Overall Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Records -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Total Records</h3>
+            <p class="text-2xl font-bold text-blue-600">{{formatNumber(report.overallSummary.totalRecords)}}</p>
+          </div>
+          <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Files -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Files Processed</h3>
+            <p class="text-2xl font-bold text-green-600">{{formatNumber(report.overallSummary.totalFiles)}}</p>
+          </div>
+          <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Locations -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Active Locations</h3>
+            <p class="text-2xl font-bold text-purple-600">{{report.overallSummary.uniqueLocations}}</p>
+          </div>
+          <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall Completeness -->
+      <div class="bg-white p-6 rounded-lg shadow border">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-medium text-gray-500">Overall Completeness</h3>
+            <p class="text-2xl font-bold" [ngClass]="getHealthStatusClass(report.overallSummary.healthStatus)">
+              {{report.overallSummary.overallCompleteness.toFixed(1)}}%
+            </p>
+          </div>
+          <div class="w-12 h-12 rounded-lg flex items-center justify-center" [ngClass]="getHealthStatusClass(report.overallSummary.healthStatus)">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Health Status Banner -->
+    <div class="mb-8 p-4 rounded-lg border-l-4" [ngClass]="getHealthStatusClass(report.overallSummary.healthStatus)">
+      <div class="flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="font-medium">System Health: {{report.overallSummary.healthStatus}}</span>
+      </div>
+      <p class="mt-1 text-sm">
+        Data period: {{formatDateTime(report.overallSummary.firstDataPoint)}} to {{formatDateTime(report.overallSummary.lastDataPoint)}}
+      </p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white rounded-lg shadow-sm border mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex space-x-8 px-6" aria-label="Tabs">
+          <button 
+            *ngFor="let tab of ['overview', 'files', 'gaps', 'locations', 'satellites', 'trends', 'quality']"
+            (click)="setActiveTab(tab)"
+            [ngClass]="{
+              'border-blue-500 text-blue-600': activeTab === tab,
+              'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== tab
+            }"
+            class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+            {{tab === 'overview' ? 'Overview' :
+              tab === 'files' ? 'File Uploads' :
+              tab === 'gaps' ? 'Data Gaps' :
+              tab === 'locations' ? 'Location Coverage' :
+              tab === 'satellites' ? 'Satellite Availability' :
+              tab === 'trends' ? 'Time Trends' :
+              tab === 'quality' ? 'Data Quality' : tab}}
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-6">
+        <!-- Overview Tab -->
+        <div *ngIf="activeTab === 'overview'">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium text-gray-900">Report Overview</h3>
+            <button 
+              (click)="exportReport()" 
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Export Report
+            </button>
+          </div>
+
+          <!-- Time Series Chart -->
+          <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <h4 class="text-md font-medium text-gray-900 mb-4">Data Flow Over Time</h4>
+            <div class="h-80">
+              <canvas baseChart
+                [data]="timeSeriesChartData"
+                [options]="timeSeriesChartOptions"
+                type="line">
+              </canvas>
+            </div>
+          </div>
+
+          <!-- Key Metrics Grid -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Data Completeness</h4>
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span>Expected Records:</span>
+                  <span class="font-medium">{{formatNumber(report.overallSummary.totalRecords * 1.2)}}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Actual Records:</span>
+                  <span class="font-medium">{{formatNumber(report.overallSummary.totalRecords)}}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Missing Periods:</span>
+                  <span class="font-medium text-red-600">{{report.overallSummary.missingDataPeriods}}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Coverage Summary</h4>
+              <div class="space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span>Unique Locations:</span>
+                  <span class="font-medium">{{report.overallSummary.uniqueLocations}}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Unique Satellites:</span>
+                  <span class="font-medium">{{report.overallSummary.uniqueSatellites}}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span>Files Processed:</span>
+                  <span class="font-medium">{{report.overallSummary.totalFiles}}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Quality Score</h4>
+              <div class="text-center">
+                <div class="text-3xl font-bold" [ngClass]="getHealthStatusClass(report.overallSummary.healthStatus)">
+                  {{report.qualitySummary.overallQualityScore.toFixed(1)}}%
+                </div>
+                <div class="text-sm text-gray-600 mt-1">
+                  {{formatNumber(report.qualitySummary.validRecords)}} valid records
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- File Uploads Tab -->
+        <div *ngIf="activeTab === 'files'">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium text-gray-900">File Upload History</h3>
+            <button 
+              (click)="exportFileUploads()" 
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Export File Data
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Time</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Locations</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satellites</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processing Time</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let file of report.fileUploads">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{file.fileName}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDateTime(file.uploadTime)}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{formatNumber(file.recordsCount)}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{file.locationsInFile.length}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{file.satellitesInFile.length}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 text-xs font-medium rounded-full" [ngClass]="getHealthStatusClass(file.processingStatus)">
+                      {{file.processingStatus}}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDuration(file.processingTimeMs)}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Data Gaps Tab -->
+        <div *ngIf="activeTab === 'gaps'">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-medium text-gray-900">Data Gaps Analysis</h3>
+            <button 
+              (click)="exportDataGaps()" 
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+              Export Gap Data
+            </button>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h4 class="font-medium text-red-900">Missing Locations</h4>
+              <div class="mt-2">
+                <div class="text-2xl font-bold text-red-600">{{report.dataGaps.missingLocations.length}}</div>
+                <div class="text-sm text-red-600 mt-1">
+                  <span *ngFor="let loc of report.dataGaps.missingLocations; let i = index">
+                    {{loc}}<span *ngIf="i < report.dataGaps.missingLocations.length - 1">, </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <h4 class="font-medium text-orange-900">Missing Satellites</h4>
+              <div class="mt-2">
+                <div class="text-2xl font-bold text-orange-600">{{report.dataGaps.missingSatellites.length}}</div>
+                <div class="text-sm text-orange-600 mt-1">
+                  <span *ngFor="let sat of report.dataGaps.missingSatellites; let i = index">
+                    {{sat}}<span *ngIf="i < report.dataGaps.missingSatellites.length - 1">, </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <h4 class="font-medium text-yellow-900">Expected vs Actual</h4>
+              <div class="mt-2">
+                <div class="text-2xl font-bold text-yellow-600">{{(report.dataGaps.expectedVsActualRatio * 100).toFixed(1)}}%</div>
+                <div class="text-sm text-yellow-600">Data completeness ratio</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+            <h4 class="font-medium text-blue-900 mb-2">Recommendations</h4>
+            <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
+              <li *ngFor="let rec of report.dataGaps.recommendations">{{rec}}</li>
+            </ul>
+          </div>
+
+          <!-- Missing Periods Table -->
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time Period</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satellite</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actual</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr *ngFor="let gap of report.dataGaps.missingPeriods">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{formatDateTime(gap.startTime)}} - {{formatDateTime(gap.endTime)}}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{gap.location}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{gap.satellite}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{gap.reason}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{gap.expectedRecords}}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">{{gap.actualRecords}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Location Coverage Tab -->
+        <div *ngIf="activeTab === 'locations'">
+          <div class="mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Location Coverage Analysis</h3>
+            
+            <!-- Location Coverage Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+              <canvas baseChart
+                [data]="locationCoverageChartData"
+                type="bar">
+              </canvas>
+            </div>
+          </div>
+
+          <!-- Location Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div *ngFor="let location of report.locationCoverage" class="bg-white border rounded-lg p-6">
+              <div class="flex justify-between items-start mb-4">
+                <h4 class="text-lg font-medium text-gray-900">{{location.locationName}}</h4>
+                <span class="px-2 py-1 text-xs font-medium rounded-full" [ngClass]="getHealthStatusClass(location.coverageStatus)">
+                  {{location.coverageStatus}}
+                </span>
+              </div>
+              
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Total Records:</span>
+                  <span class="font-medium">{{formatNumber(location.totalRecords)}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Completeness:</span>
+                  <span class="font-medium">{{location.completenessPercentage.toFixed(1)}}%</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Satellites:</span>
+                  <span class="font-medium">{{location.availableSatellites.length}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">First Data:</span>
+                  <span class="font-medium text-xs">{{formatDateTime(location.firstData)}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Last Data:</span>
+                  <span class="font-medium text-xs">{{formatDateTime(location.lastData)}}</span>
+                </div>
+              </div>
+              
+              <div class="mt-4">
+                <h5 class="text-sm font-medium text-gray-900 mb-2">Available Satellites</h5>
+                <div class="flex flex-wrap gap-1">
+                  <span *ngFor="let sat of location.availableSatellites" 
+                        class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                    {{sat}}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Satellite Availability Tab -->
+        <div *ngIf="activeTab === 'satellites'">
+          <div class="mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Satellite Availability Analysis</h3>
+            
+            <!-- Satellite Availability Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+              <canvas baseChart
+                [data]="satelliteAvailabilityChartData"
+                type="doughnut">
+              </canvas>
+            </div>
+          </div>
+
+          <!-- Satellite Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div *ngFor="let satellite of report.satelliteAvailability" class="bg-white border rounded-lg p-6">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h4 class="text-lg font-medium text-gray-900">{{satellite.satelliteSystem}}</h4>
+                  <p class="text-sm text-gray-600">{{satellite.satelliteLetter}}</p>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full" [ngClass]="getHealthStatusClass(satellite.healthStatus)">
+                  {{satellite.healthStatus}}
+                </span>
+              </div>
+              
+              <div class="space-y-3">
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Total Records:</span>
+                  <span class="font-medium">{{formatNumber(satellite.totalRecords)}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Availability:</span>
+                  <span class="font-medium">{{satellite.availabilityPercentage.toFixed(1)}}%</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Locations:</span>
+                  <span class="font-medium">{{satellite.availableLocations.length}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">First Observation:</span>
+                  <span class="font-medium text-xs">{{formatDateTime(satellite.firstObservation)}}</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-sm text-gray-600">Last Observation:</span>
+                  <span class="font-medium text-xs">{{formatDateTime(satellite.lastObservation)}}</span>
+                </div>
+              </div>
+              
+              <div class="mt-4">
+                <h5 class="text-sm font-medium text-gray-900 mb-2">Available Locations</h5>
+                <div class="flex flex-wrap gap-1">
+                  <span *ngFor="let loc of satellite.availableLocations" 
+                        class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">
+                    {{loc}}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Trends Tab -->
+        <div *ngIf="activeTab === 'trends'">
+          <div class="mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Time Series Analysis</h3>
+            
+            <!-- Time Series Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <canvas baseChart
+                [data]="timeSeriesChartData"
+                [options]="timeSeriesChartOptions"
+                type="line">
+              </canvas>
+            </div>
+          </div>
+
+          <!-- Peak and Low Times -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h4 class="font-medium text-green-900 mb-2">Peak Data Times</h4>
+              <ul class="text-sm text-green-800 space-y-1">
+                <li *ngFor="let peak of report.timeSeriesFlow.peakDataTimes">{{peak}}</li>
+              </ul>
+            </div>
+
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+              <h4 class="font-medium text-red-900 mb-2">Low Data Times</h4>
+              <ul class="text-sm text-red-800 space-y-1">
+                <li *ngFor="let low of report.timeSeriesFlow.lowDataTimes">{{low}}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Data Quality Tab -->
+        <div *ngIf="activeTab === 'quality'">
+          <div class="mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Data Quality Analysis</h3>
+            
+            <!-- Quality Score Chart -->
+            <div class="bg-gray-50 p-4 rounded-lg mb-6">
+              <canvas baseChart
+                [data]="qualityScoreChartData"
+                type="bar">
+              </canvas>
+            </div>
+          </div>
+
+          <!-- Quality Summary -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Overall Quality</h4>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-blue-600">{{report.qualitySummary.overallQualityScore.toFixed(1)}}%</div>
+                <div class="text-sm text-gray-600">Quality Score</div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Valid Records</h4>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-green-600">{{formatNumber(report.qualitySummary.validRecords)}}</div>
+                <div class="text-sm text-gray-600">Total Valid</div>
+              </div>
+            </div>
+
+            <div class="bg-white p-4 border rounded-lg">
+              <h4 class="font-medium text-gray-900 mb-2">Outliers</h4>
+              <div class="text-center">
+                <div class="text-3xl font-bold text-orange-600">{{formatNumber(report.qualitySummary.outlierRecords)}}</div>
+                <div class="text-sm text-gray-600">Outlier Records</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quality Issues -->
+          <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+            <h4 class="font-medium text-yellow-900 mb-2">Quality Issues</h4>
+            <ul class="list-disc list-inside text-sm text-yellow-800 space-y-1">
+              <li *ngFor="let issue of report.qualitySummary.qualityIssues">{{issue}}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
