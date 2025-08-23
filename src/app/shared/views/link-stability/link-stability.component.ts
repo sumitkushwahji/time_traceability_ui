@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
 import { ActivatedRoute } from '@angular/router';
@@ -69,8 +69,8 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   plotChartOptions: any;
   tdevChartOptions: any;
   
-  // Data display limits - default to all data like Plot View
-  dataLimit = -1;
+  // Data display limits - explicitly set to show ALL data by default (same as Plot View)
+  dataLimit = -1; // Explicitly set to -1 to show all data
   dataLimits = [50, 100, 200, 500, -1]; // -1 means all data
   
   // Filtering
@@ -85,6 +85,9 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   
   // TDEV Analysis state
   showTdevAnalysis = false;
+
+  // Platform check for SSR compatibility
+  isBrowser = false;
 
   // Location to station mapping
   readonly locationStationMap: { [key: string]: string[] } = {
@@ -101,14 +104,18 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     private satDataService: SatDataService,
     private filterService: FilterService,
     private dateRangeService: DateRangeService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
     this.initializeChartOptions();
   }
 
   ngOnInit(): void {
     // Get the data identifier from route data
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'] || '';
+    
+    console.log(`🔧 Link Stability ngOnInit: dataIdentifier="${this.dataIdentifier}", dataLimit=${this.dataLimit}`);
     
     // Subscribe to filter changes
     this.filterService.filter$
@@ -123,6 +130,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     this.dateRangeService.dateRange$
       .pipe(takeUntil(this.destroy$))
       .subscribe(({ start, end }) => {
+        console.log(`📅 Link Stability: Date range changed to ${start} - ${end}`);
         this.startDate = start;
         this.endDate = end;
         this.applyFilters();
@@ -393,8 +401,17 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       return;
     }
 
+    console.log(`📊 Link Stability updatePlotChart: filteredData.length=${this.filteredData.length}, dataLimit=${this.dataLimit}`);
+
+    // Sort by time for proper plot ordering - SAME AS PLOT VIEW
+    const sortedData = [...this.filteredData].sort((a, b) => 
+      new Date(a.mjdDateTime).getTime() - new Date(b.mjdDateTime).getTime()
+    );
+
     // Apply data limit exactly like Plot View does
-    const sliced = this.dataLimit === -1 ? this.filteredData : this.filteredData.slice(-this.dataLimit);
+    const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
+
+    console.log(`📊 Link Stability sliced data: ${sliced.length} points (showing ${this.dataLimit === -1 ? 'ALL' : 'LAST ' + this.dataLimit})`);
 
     // Use same x-axis labeling as Plot View  
     const labels = sliced.map(d => new Date(d.mjdDateTime).toLocaleString());
@@ -407,7 +424,14 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       datasets,
     };
 
-    console.log(`Plot chart updated with ${sliced.length} data points, ${datasets.length} station datasets for ${this.dataIdentifier} (limit: ${this.dataLimit})`);
+    console.log(`📈 Plot chart updated with ${sliced.length} data points, ${datasets.length} station datasets for ${this.dataIdentifier} (limit: ${this.dataLimit})`);
+    
+    // Debug: Log time range of displayed data
+    if (sliced.length > 0) {
+      const firstTime = new Date(sliced[0].mjdDateTime).toISOString();
+      const lastTime = new Date(sliced[sliced.length - 1].mjdDateTime).toISOString();
+      console.log(`⏰ Link Stability time range: ${firstTime} to ${lastTime}`);
+    }
   }
 
   // Build datasets method similar to Plot View for multiple station lines
@@ -526,8 +550,13 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     this.isLoading = true;
 
     try {
+      // Sort data by time first - same as Plot View and updatePlotChart
+      const sortedData = [...this.filteredData].sort((a, b) => 
+        new Date(a.mjdDateTime).getTime() - new Date(b.mjdDateTime).getTime()
+      );
+      
       // Use the same data slicing as the chart display
-      const sliced = this.dataLimit === -1 ? this.filteredData : this.filteredData.slice(-this.dataLimit);
+      const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
       
       // Use avgRefsysDifference directly like Plot View does
       const refSysDifferences = sliced.map(item => item.avgRefsysDifference);

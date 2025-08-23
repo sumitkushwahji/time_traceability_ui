@@ -263,7 +263,14 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     // Apply data limit - take last N points to show latest data on right side
     const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
 
-    console.log(`📈 Preparing chart with ${sliced.length} data points (limit: ${this.dataLimit}, showing latest data)`);
+    console.log(`📈 Plot View preparing chart with ${sliced.length} data points (limit: ${this.dataLimit}, showing ${this.dataLimit === -1 ? 'ALL' : 'LAST ' + this.dataLimit} data)`);
+
+    // Debug: Log time range of displayed data
+    if (sliced.length > 0) {
+      const firstTime = new Date(sliced[0].mjdDateTime).toISOString();
+      const lastTime = new Date(sliced[sliced.length - 1].mjdDateTime).toISOString();
+      console.log(`⏰ Plot View time range: ${firstTime} to ${lastTime}`);
+    }
 
     // Group by source2 for plotting separate lines per location
     const source2Groups: { [key: string]: SatData[] } = {};

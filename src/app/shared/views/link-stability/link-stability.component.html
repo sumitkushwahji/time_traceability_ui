@@ -44,7 +44,7 @@
   </div>
 
   <!-- RefSys Diff Plot -->
-  <div *ngIf="plotChartData && !isLoading" class="mb-6">
+  <div *ngIf="plotChartData && !isLoading && isBrowser" class="mb-6">
     <div class="bg-white rounded-lg shadow-md p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">RefSys Diff for {{ dataIdentifier | titlecase }}</h3>
@@ -78,7 +78,7 @@
   </div>
 
   <!-- Time Deviation Analysis Section -->
-  <div *ngIf="showTdevAnalysis && tdevChartData && !isLoading" class="mb-6">
+  <div *ngIf="showTdevAnalysis && tdevChartData && !isLoading && isBrowser" class="mb-6">
     <div class="bg-white rounded-lg shadow-md p-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Time Deviation (TDEV) Analysis</h3>
