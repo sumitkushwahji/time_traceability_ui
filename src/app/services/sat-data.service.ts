@@ -1,8 +1,10 @@
 // src/app/services/sat-data.service.ts
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment'; // Adjust path if needed
+import { PlatformService } from './platform.service';
 
 export interface SatData {
   id: string;
@@ -36,7 +38,27 @@ export class SatDataService {
   private readonly optimizedUrl = `${environment.apiBaseUrl}/data/optimized-sat-differences`;
   private readonly bulkUrl = `${environment.apiBaseUrl}/data/bulk-location-data`;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private platformService: PlatformService
+  ) {}
+
+  /**
+   * Handle HTTP errors gracefully, especially during SSR/prerendering
+   */
+  private handleError<T>(operation = 'operation', result?: T) {
+    return (error: any): Observable<T> => {
+      // During SSR/prerendering, return empty result instead of throwing
+      if (!this.platformService.isBrowser()) {
+        console.warn(`${operation} failed during SSR, returning empty result:`, error?.message || error);
+        return of(result as T);
+      }
+      
+      // In browser, log error and return empty result
+      console.error(`${operation} failed:`, error);
+      return of(result as T);
+    };
+  }
 
   getSatData(
     page: number,
@@ -69,6 +91,8 @@ export class SatDataService {
     return this.http.get<{ content: SatData[]; totalElements: number }>(
       this.baseUrl,
       { params }
+    ).pipe(
+      catchError(this.handleError('getSatData', { content: [], totalElements: 0 }))
     );
   }
 
@@ -189,6 +213,8 @@ export class SatDataService {
     return this.http.get<{ data: SatData[]; totalElements: number; cached: boolean }>(
       this.bulkUrl, 
       { params }
+    ).pipe(
+      catchError(this.handleError('getBulkLocationData', { data: [], totalElements: 0, cached: false }))
     );
   }
 
@@ -223,6 +249,8 @@ export class SatDataService {
     return this.http.get<{ content: SatData[]; totalElements: number }>(
       this.optimizedUrl,
       { params }
+    ).pipe(
+      catchError(this.handleError('getOptimizedSatData', { content: [], totalElements: 0 }))
     );
   }
 }
