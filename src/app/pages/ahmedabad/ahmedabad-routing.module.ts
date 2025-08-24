@@ -11,7 +11,7 @@ const routes: Routes = [
     path: '',
     component: AhmedabadComponent,
     children: [
-      { path: '', redirectTo: 'data-view', pathMatch: 'full' },
+      { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       // Use the fast FastDataViewComponent for Ahmedabad's data view
       {
         path: 'data-view',

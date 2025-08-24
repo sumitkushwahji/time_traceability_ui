@@ -20,7 +20,7 @@ export class BhubaneshwarComponent {
   locationName = 'bhubaneshwar';
 
   selectedView: string = ''; // To track which top button is active
-    selectedFilter: string = 'GPS'; // To track the current right-panel filter
+    selectedFilter: string = 'NAVIC'; // To track the current right-panel filter (default to NAVIC)
   
     constructor(
       private router: Router,

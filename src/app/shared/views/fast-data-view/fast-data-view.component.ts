@@ -50,7 +50,7 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   sortDirection = 'asc';
   
   // Filtering and search
-  selectedFilter = 'ALL';
+  selectedFilter = 'NAVIC'; // Default to NAVIC instead of ALL
   searchQuery = '';
   startDate = '';
   endDate = '';
@@ -65,7 +65,7 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
     npl: ['GZLI2P', 'IRNPLI'],
     bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
     faridabad: ['GZLMF1', 'GZLMF2', 'IRACCO'],
-    ahmedabad: ['GZLAHM1', 'IRAHM1'],
+    ahmedabad: ['GZLAHM1', 'IRAHM1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
     bhubaneshwar: ['GZLBBS1', 'IRBBS1'],
     drc: ['GZLDEL1', 'IRDEL1'],
     guwahati: ['GZLGHT1', 'IRGHT1'],
@@ -159,7 +159,7 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
     const allSource2Values = [
       'GZLMB1', 'GZLMB2', 'IRLMB1', 'IRLMB2', // Bangalore
       'GZLMF1', 'GZLMF2', 'IRACCO', // Faridabad
-      'GZLAHM1', 'IRAHM1', // Ahmedabad
+      'GZLAHM1', 'IRAHM1', 'GZLMA2', // Ahmedabad (added GZLMA2)
       'GZLBBS1', 'IRBBS1', // Bhubaneshwar
       'GZLDEL1', 'IRDEL1', // DRC
       'GZLGHT1', 'IRGHT1', // Guwahati

@@ -12,7 +12,7 @@ const routes: Routes = [
     path: '',
     component: BhubaneshwarComponent,
     children: [
-      { path: '', redirectTo: 'data-view', pathMatch: 'full' },
+      { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       // Use the fast FastDataViewComponent for Bhubaneshwar's data view
       {
         path: 'data-view',

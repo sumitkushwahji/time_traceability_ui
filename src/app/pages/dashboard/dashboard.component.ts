@@ -23,7 +23,7 @@ export class DashboardComponent implements OnInit {
   location = 'dashboard';
   selectedView: string = '';
   
-  selectedFilter: string = 'GPS'; // Default to GPS
+  selectedFilter: string = 'NAVIC'; // Default to NAVIC
 
   constructor(private router: Router, private route: ActivatedRoute, private filterService: FilterService) {
     // Ensure filter service has the correct initial value

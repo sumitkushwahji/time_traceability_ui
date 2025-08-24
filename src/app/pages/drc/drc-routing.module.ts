@@ -11,7 +11,7 @@ const routes: Routes = [
     path: '',
     component: DrcComponent,
     children: [
-      { path: '', redirectTo: 'data-view', pathMatch: 'full' },
+      { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       // Use the fast FastDataViewComponent for DRC's data view
       {
         path: 'data-view',

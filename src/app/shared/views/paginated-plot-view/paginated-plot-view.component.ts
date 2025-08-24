@@ -37,7 +37,7 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
     npl: ['GZLI2P', 'IRNPLI'],
     bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
     faridabad: ['GZLMF1', 'GZLMF2', 'IRACCO'],
-    ahmedabad: ['GZLAHM1', 'IRAHM1'],
+    ahmedabad: ['GZLAHM1', 'IRAHM1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
     bhubaneshwar: ['GZLBBS1', 'IRBBS1'],
     drc: ['GZLDEL1', 'IRDEL1'],
     guwahati: ['GZLGHT1', 'IRGHT1'],
