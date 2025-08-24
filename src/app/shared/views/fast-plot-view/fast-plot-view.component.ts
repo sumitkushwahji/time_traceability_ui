@@ -379,59 +379,50 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   }
 
   private getColorForSource2(source2: string): string {
-    // Assign consistent colors based on source2 location codes
-    const colorMap: { [key: string]: string } = {
-      // Original location mappings
-      'BLR': '#3B82F6', // Blue for Bangalore
-      'FAR': '#EF4444', // Red for Faridabad
-      'GUW': '#10B981', // Green for Guwahati
-      'BHU': '#F59E0B', // Amber for Bhubaneshwar
-      'DRC': '#8B5CF6', // Purple for DRC
-      'AHM': '#EC4899', // Pink for Ahmedabad
-      
-      // Bangalore location codes
-      'GZLMB1': '#3B82F6', // Blue for GZLMB1
-      'GZLMB2': '#1E40AF', // Darker blue for GZLMB2
-      'IRLMB1': '#1E40AF', // Light blue for IRLMB1
-      'IRLMB2': '#DBEAFE', // Very light blue for IRLMB2
-      
-      // Faridabad location codes
-      'GZLMF1': '#EF4444', // Red for GZLMF1
-      'GZLMF2': '#DC2626', // Darker red for GZLMF2
-      'IRACCO': '#FCA5A5', // Light red for IRACCO
-      
-      // Ahmedabad location codes
-      'GZLAHM1': '#EC4899', // Pink for GZLAHM1
-      'IRAHM1': '#F472B6', // Light pink for IRAHM1
-      'GZLMA2': '#DB2777', // Darker pink for GZLMA2
-      
-      // Bhubaneshwar location codes
-      'GZLBBS1': '#F59E0B', // Amber for GZLBBS1
-      'IRBBS1': '#FBBF24', // Light amber for IRBBS1
-      
-      // DRC location codes
-      'GZLDEL1': '#8B5CF6', // Purple for GZLDEL1
-      'IRDEL1': '#A78BFA', // Light purple for IRDEL1
-      
-      // Guwahati location codes
-      'GZLGHT1': '#10B981', // Green for GZLGHT1
-      'IRGHT1': '#34D399', // Light green for IRGHT1
-      
-      // NPL location codes
-      'GZLI2P': '#6B7280', // Gray for GZLI2P
-      'IRNPLI': '#9CA3AF', // Light gray for IRNPLI
-    };
-
-    if (colorMap[source2]) {
-      return colorMap[source2];
+    // 🎨 CONSISTENT COLOR SCHEME: Same color order for all locations
+    // This ensures first dataset in each location gets the same color, 
+    // second dataset gets the same second color, etc.
+    
+    // First, determine which position this source2 is in for the current location
+    const currentLocationSources = this.dataIdentifier 
+      ? this.locationSource2Map[this.dataIdentifier] ?? []
+      : [];
+    
+    // Find the index of this source2 in the current location's source list
+    const sourceIndex = currentLocationSources.indexOf(source2);
+    
+    // Define consistent colors for positions (1st, 2nd, 3rd, etc. data series)
+    const consistentColors = [
+      '#3B82F6', // Blue - First data series in all locations
+      '#EF4444', // Red - Second data series in all locations  
+      '#10B981', // Green - Third data series in all locations
+      '#F59E0B', // Amber - Fourth data series in all locations
+      '#8B5CF6', // Purple - Fifth data series in all locations
+      '#EC4899', // Pink - Sixth data series in all locations
+      '#6B7280', // Gray - Seventh data series in all locations
+      '#14B8A6', // Teal - Eighth data series in all locations
+      '#F97316', // Orange - Ninth data series in all locations
+      '#06B6D4', // Sky Blue - Tenth data series in all locations
+      '#84CC16', // Lime - Eleventh data series in all locations
+      '#A855F7', // Violet - Twelfth data series in all locations
+      '#E11D48', // Rose - Thirteenth data series in all locations
+      '#0891B2', // Cyan - Fourteenth data series in all locations
+      '#65A30D', // Green-600 - Fifteenth data series in all locations
+    ];
+    
+    // If we found the source in the current location's list, use position-based color
+    if (sourceIndex !== -1 && sourceIndex < consistentColors.length) {
+      console.log(`🎨 Assigning color for ${source2} at position ${sourceIndex}: ${consistentColors[sourceIndex]}`);
+      return consistentColors[sourceIndex];
     }
-
-    // Generate consistent color based on source2 name for unknown codes
+    
+    // Fallback: Generate consistent color based on source2 name for unknown codes
     let hash = 0;
     for (let i = 0; i < source2.length; i++) {
       hash = source2.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash) % 360;
+    console.log(`⚠️  Using generated color for unknown source: ${source2} - hsl(${hue}, 70%, 50%)`);
     return `hsl(${hue}, 70%, 50%)`;
   }
 

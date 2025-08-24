@@ -449,37 +449,41 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       }
     });
 
-    const stationColors: { [key: string]: string } = {
-      // Bangalore stations (same as fast-plot-view)
-      'GZLMB1': '#3B82F6', // Blue for GZLMB1
-      'GZLMB2': '#1E40AF', // Darker blue for GZLMB2
-      'IRLMB1': '#4ECDC4', // Teal for IRLMB1
-      'IRLMB2': '#45B7D1', // Light blue for IRLMB2
+    // 🎨 CONSISTENT COLOR SCHEME: Use same position-based colors as fast-plot-view
+    const getConsistentColorForStation = (station: string): string => {
+      // First, determine which position this station is in for the current location
+      const currentLocationSources = this.locationStationMap[this.dataIdentifier] ?? [];
       
-      // Ahmedabad stations
-      'GZLAHM1': '#F59E0B', // Amber for GZLAHM1
-      'IRAHM1': '#FBBF24', // Light amber for IRAHM1
+      // Find the index of this station in the current location's source list
+      const stationIndex = currentLocationSources.indexOf(station);
       
-      // Bhubaneshwar stations
-      'GZLBBS1': '#F59E0B', // Amber for GZLBBS1
-      'IRBBS1': '#FBBF24', // Light amber for IRBBS1
+      // Define consistent colors for positions (1st, 2nd, 3rd, etc. data series)
+      const consistentColors = [
+        '#3B82F6', // Blue - First data series in all locations
+        '#EF4444', // Red - Second data series in all locations  
+        '#10B981', // Green - Third data series in all locations
+        '#F59E0B', // Amber - Fourth data series in all locations
+        '#8B5CF6', // Purple - Fifth data series in all locations
+        '#EC4899', // Pink - Sixth data series in all locations
+        '#6B7280', // Gray - Seventh data series in all locations
+        '#14B8A6', // Teal - Eighth data series in all locations
+        '#F97316', // Orange - Ninth data series in all locations
+        '#06B6D4', // Sky Blue - Tenth data series in all locations
+        '#84CC16', // Lime - Eleventh data series in all locations
+        '#A855F7', // Violet - Twelfth data series in all locations
+        '#E11D48', // Rose - Thirteenth data series in all locations
+        '#0891B2', // Cyan - Fourteenth data series in all locations
+        '#65A30D', // Green-600 - Fifteenth data series in all locations
+      ];
       
-      // DRC stations
-      'GZLDEL1': '#8B5CF6', // Purple for GZLDEL1
-      'IRDEL1': '#A78BFA', // Light purple for IRDEL1
+      // If we found the station in the current location's list, use position-based color
+      if (stationIndex !== -1 && stationIndex < consistentColors.length) {
+        console.log(`🎨 Link Stability: Assigning color for ${station} at position ${stationIndex}: ${consistentColors[stationIndex]}`);
+        return consistentColors[stationIndex];
+      }
       
-      // Guwahati stations
-      'GZLGHT1': '#10B981', // Green for GZLGHT1
-      'IRGHT1': '#34D399', // Light green for IRGHT1
-      
-      // NPL stations
-      'GZLI2P': '#6B7280', // Gray for GZLI2P
-      'IRNPLI': '#9CA3AF', // Light gray for IRNPLI
-      
-      // Faridabad stations
-      'GZLMF1': '#EF4444', // Red for GZLMF1
-      'GZLMF2': '#F87171', // Light red for GZLMF2
-      'IRACCO': '#FCA5A5', // Pink for IRACCO
+      // Fallback: Generate consistent color based on station name for unknown codes
+      return this.getRandomColor();
     };
 
     const datasets: any[] = [];
@@ -498,7 +502,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         return matchingPoint ? matchingPoint.avgRefsysDifference : null;
       });
 
-      const color = stationColors[station] || this.getRandomColor();
+      const color = getConsistentColorForStation(station);
 
       datasets.push({
         label: `${station} CV Diff`,

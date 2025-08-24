@@ -161,8 +161,32 @@ export class PlotViewComponent implements OnInit, OnDestroy {
       Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
     });
 
-    return Array.from(allLocations).map(loc => {
-      const color = this.getRandomColor();
+    // 🎨 CONSISTENT COLOR SCHEME: Use same position-based colors as other components
+    const consistentColors = [
+      '#3B82F6', // Blue - First data series in all locations
+      '#EF4444', // Red - Second data series in all locations  
+      '#10B981', // Green - Third data series in all locations
+      '#F59E0B', // Amber - Fourth data series in all locations
+      '#8B5CF6', // Purple - Fifth data series in all locations
+      '#EC4899', // Pink - Sixth data series in all locations
+      '#6B7280', // Gray - Seventh data series in all locations
+      '#14B8A6', // Teal - Eighth data series in all locations
+      '#F97316', // Orange - Ninth data series in all locations
+      '#06B6D4', // Sky Blue - Tenth data series in all locations
+      '#84CC16', // Lime - Eleventh data series in all locations
+      '#A855F7', // Violet - Twelfth data series in all locations
+      '#E11D48', // Rose - Thirteenth data series in all locations
+      '#0891B2', // Cyan - Fourteenth data series in all locations
+      '#65A30D', // Green-600 - Fifteenth data series in all locations
+    ];
+
+    return Array.from(allLocations).map((loc, index) => {
+      // Use consistent color based on position, fallback to random if we exceed defined colors
+      const color = index < consistentColors.length 
+        ? consistentColors[index] 
+        : this.getRandomColor();
+
+      console.log(`🎨 Plot View: Assigning color for location ${loc} at position ${index}: ${color}`);
 
       return {
         label: loc,

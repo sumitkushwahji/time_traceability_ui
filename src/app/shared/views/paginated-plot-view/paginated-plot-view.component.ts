@@ -154,25 +154,44 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
   updateChartData(): void {
     const sliced = this.dataLimit === -1 ? this.data : this.data.slice(-this.dataLimit);
 
+    // 🎨 CONSISTENT COLOR SCHEME: Use same colors as fast-plot-view for consistency
+    const consistentColors = [
+      '#3B82F6', // Blue - First data series (Avg1)
+      '#EF4444', // Red - Second data series (Avg2) 
+      '#10B981', // Green - Third data series (CV Diff)
+      '#F59E0B', // Amber - Fourth data series
+      '#8B5CF6', // Purple - Fifth data series
+      '#EC4899', // Pink - Sixth data series
+      '#6B7280', // Gray - Seventh data series
+      '#14B8A6', // Teal - Eighth data series
+      '#F97316', // Orange - Ninth data series
+      '#06B6D4', // Sky Blue - Tenth data series
+      '#84CC16', // Lime - Eleventh data series
+      '#A855F7', // Violet - Twelfth data series
+      '#E11D48', // Rose - Thirteenth data series
+      '#0891B2', // Cyan - Fourteenth data series
+      '#65A30D', // Green-600 - Fifteenth data series
+    ];
+
     this.chartData = {
       labels: sliced.map((d) => d.mjdDateTime),
       datasets: [
         {
           label: 'Avg1',
           data: sliced.map((d) => d.avg1),
-          borderColor: 'blue',
+          borderColor: consistentColors[0], // Blue
           tension: 0.3,
         },
         {
           label: 'Avg2',
           data: sliced.map((d) => d.avg2),
-          borderColor: 'green',
+          borderColor: consistentColors[1], // Red
           tension: 0.3,
         },
         {
           label: 'CV Diff',
           data: sliced.map((d) => d.avgRefsysDifference),
-          borderColor: 'red',
+          borderColor: consistentColors[2], // Green
           tension: 0.3,
         },
       ],
