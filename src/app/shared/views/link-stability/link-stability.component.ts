@@ -510,11 +510,11 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         borderColor: color,
         backgroundColor: 'transparent',
         pointBackgroundColor: dataPoints.map(point => {
-          // Color coding for points: green for ±5ns, yellow for outside, red for >20ns
+          // Color coding for points: green for ±30ns, yellow for outside, red for >20ns
           if (point === null) return color;
           const diff = Math.abs(point);
-          if (diff <= 5) return 'green';
-          if (diff <= 20) return 'rgb(255, 205, 86)';
+          if (diff <= 30) return 'green';
+          if (diff <= 50) return 'rgb(255, 205, 86)';
           return 'red';
         }),
         pointBorderColor: color,
