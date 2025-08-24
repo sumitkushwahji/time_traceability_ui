@@ -160,17 +160,22 @@
         <!-- Location Distribution Chart -->
         <div class="bg-white rounded-lg shadow border p-6">
           <h3 class="text-lg font-semibold mb-4">Upload Distribution by Location</h3>
+          <div class="text-xs text-gray-600 mb-2">
+            <span class="text-green-600">■ GPS</span> &nbsp;&nbsp;
+            <span class="text-blue-600">■ NAVIC</span> &nbsp;&nbsp;
+            <span class="text-purple-600">■ GLONASS</span>
+          </div>
           <div class="h-64">
             <canvas baseChart
               [data]="locationDistributionChart"
-              [options]="barChartOptions"
+              [options]="satelliteSystemChartOptions"
               type="bar">
             </canvas>
           </div>
         </div>
       </div>
       
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <!-- File Type Distribution -->
         <div class="bg-white rounded-lg shadow border p-6">
           <h3 class="text-lg font-semibold mb-4">File Type Distribution</h3>
@@ -185,7 +190,7 @@
         
         <!-- Hourly Upload Patterns -->
         <div class="bg-white rounded-lg shadow border p-6">
-          <h3 class="text-lg font-semibold mb-4">Upload Patterns by Hour</h3>
+          <h3 class="text-lg font-semibent mb-4">Upload Patterns by Hour</h3>
           <div class="h-64">
             <canvas baseChart
               [data]="hourlyPatternChart"
@@ -195,11 +200,45 @@
           </div>
         </div>
       </div>
+
+      <!-- Overview Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Overview Dashboard</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          This overview provides comprehensive insights into file upload patterns and system health across all monitoring locations. 
+          The dashboard aggregates data from multiple ground stations to provide system-wide visibility.
+        </p>
+        <div class="text-sm text-gray-700 grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <p><strong>Daily Trends:</strong> Shows file uploads and record counts over time, helping identify upload patterns and system availability.</p>
+            <p><strong>Location Distribution:</strong> Displays upload volume by receiver showing meaningful names (BLR_TS1, NPLI_GPS, FRD_TS2) instead of technical codes, making it easy to identify data contribution from each timing system.</p>
+          </div>
+          <div>
+            <p><strong>File Type Distribution:</strong> Breakdown of file formats being processed (e.g., .dat, .csv files) to understand data source variety.</p>
+            <p><strong>Hourly Patterns:</strong> Identifies peak upload times and helps optimize processing schedules and resource allocation.</p>
+          </div>
+        </div>
+
+        <!-- Summary Cards Description -->
+        <div class="border-t pt-3">
+          <h5 class="font-medium mb-2 text-sm">Summary Statistics Explained:</h5>
+          <div class="text-xs text-gray-600 grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <p><strong>Total Files:</strong> Complete count of all uploaded files across all locations and time periods, indicating overall data volume.</p>
+              <p><strong>Total Records:</strong> Aggregate number of individual data records processed from all files, showing detailed measurement count.</p>
+            </div>
+            <div>
+              <p><strong>Average Quality:</strong> System-wide data quality percentage calculated as (valid records / total records) × 100% across all uploads.</p>
+              <p><strong>Active Locations:</strong> Number of unique ground stations currently contributing data, indicating network operational coverage.</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Daily Trends Tab -->
     <div *ngIf="activeTab === 'daily'">
-      <div class="bg-white rounded-lg shadow border overflow-hidden">
+      <div class="bg-white rounded-lg shadow border overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h3 class="text-lg font-semibold text-gray-900">Daily Upload Statistics</h3>
           <button 
@@ -242,11 +281,26 @@
           </table>
         </div>
       </div>
+
+      <!-- Daily Statistics Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Daily Statistics</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          Daily statistics provide day-by-day breakdown of file upload activity and data quality metrics across all monitoring locations.
+        </p>
+        <div class="text-sm text-gray-700 space-y-1">
+          <p><strong>Files:</strong> Total number of files successfully uploaded and processed on each day.</p>
+          <p><strong>Records:</strong> Cumulative count of data records contained within all uploaded files for the day.</p>
+          <p><strong>Locations:</strong> Number of unique ground stations that contributed data on that specific day.</p>
+          <p><strong>Avg Quality:</strong> Average quality score (0-100%) based on data completeness, accuracy, and format compliance.</p>
+          <p><strong>Completeness:</strong> Percentage of expected files received compared to the theoretical maximum based on operational schedule.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Locations Tab -->
     <div *ngIf="activeTab === 'locations'">
-      <div class="bg-white rounded-lg shadow border overflow-hidden">
+      <div class="bg-white rounded-lg shadow border overflow-hidden mb-6">
         <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h3 class="text-lg font-semibold text-gray-900">Location Upload Statistics</h3>
           <button 
@@ -260,7 +314,7 @@
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source Code</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satellite System</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Success Rate</th>
@@ -270,8 +324,17 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let location of statsData.locationStats" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{location.locationName}}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{location.source2Code}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <div class="flex flex-col">
+                    <span class="font-medium">{{getSourceCodeDisplayName(location.source2Code)}}</span>
+                    <span class="text-xs text-gray-500">({{location.source2Code}})</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span [class]="'px-2 py-1 text-xs rounded-full ' + getSatelliteSystemClass(getSatelliteSystem(location.source2Code))">
+                    {{getSatelliteSystem(location.source2Code)}}
+                  </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(location.fileCount)}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(location.totalRecords)}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{location.successRate | number:'1.1-1'}}%</td>
@@ -286,6 +349,28 @@
           </table>
         </div>
       </div>
+
+      <!-- Location Statistics Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Location Statistics</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          Location-wise breakdown shows individual performance metrics for each ground station in the time transfer monitoring network.
+        </p>
+        <div class="text-sm text-gray-700 space-y-1">
+          <p><strong>Location:</strong> Meaningful receiver identifier with original code in parentheses:</p>
+          <ul class="ml-4 text-xs space-y-1">
+            <li>• <code>NPLI_GPS (GZLI2P)</code> - NPLI GPS receiver</li>
+            <li>• <code>BLR_TS1 (GZLMB1)</code> - Bangalore Time Server 1 GPS</li>
+            <li>• <code>BLR_TS1 (IRLMB1)</code> - Bangalore Time Server 1 NAVIC</li>
+            <li>• <code>FRD_TS1 (GZLMF1)</code> - Faridabad Time Server 1 GPS</li>
+            <li>• <code>AHM_TS1 (GZLMA2)</code> - Ahmedabad Time Server 1 GPS</li>
+          </ul>
+          <p><strong>Satellite System:</strong> Constellation type - <span class="px-1 bg-green-100 text-green-800 rounded text-xs">GPS</span> (American), <span class="px-1 bg-blue-100 text-blue-800 rounded text-xs">NAVIC</span> (Indian), <span class="px-1 bg-purple-100 text-purple-800 rounded text-xs">GPS+NAVIC</span> (Multi-constellation).</p>
+          <p><strong>Files/Records:</strong> Total files uploaded and data records processed from each receiver during the selected time period.</p>
+          <p><strong>Success Rate:</strong> Percentage of files successfully processed without errors, calculated as (successful uploads / total attempts) × 100%.</p>
+          <p><strong>Status:</strong> Current operational status: Active (recent uploads), Inactive (no recent data), or Error (processing issues detected).</p>
+        </div>
+      </div>
     </div>
 
     <!-- Performance Tab -->
@@ -293,12 +378,34 @@
       <div class="mb-6">
         <div class="bg-white rounded-lg shadow border p-6">
           <h3 class="text-lg font-semibold mb-4">Processing Performance by Location</h3>
+          <div class="text-xs text-gray-600 mb-2">
+            <span class="text-green-600">■ GPS</span> &nbsp;&nbsp;
+            <span class="text-blue-600">■ NAVIC</span> &nbsp;&nbsp;
+            <span class="text-purple-600">■ GLONASS</span> &nbsp;&nbsp;|&nbsp;&nbsp;
+            Bar Colors: <span class="text-green-600">■ Excellent (&lt;2s)</span>, 
+            <span class="text-blue-600">■ Good (2-5s)</span>, 
+            <span class="text-orange-600">■ Average (5-10s)</span>, 
+            <span class="text-red-600">■ Slow (&gt;10s)</span>
+          </div>
           <div class="h-64">
             <canvas baseChart
               [data]="performanceChart"
-              [options]="barChartOptions"
+              [options]="performanceChartOptions"
               type="bar">
             </canvas>
+          </div>
+          
+          <!-- Chart Information -->
+          <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+            <p class="text-sm text-gray-700 mb-1">
+              <strong>Processing Performance Chart:</strong> Comparative analysis of file processing efficiency across all monitoring locations.
+            </p>
+            <div class="text-xs text-gray-600 space-y-1">
+              <p><strong>X-axis:</strong> Ground station locations showing meaningful names (Bangalore (BLR), Ahmedabad (AHM), Faridabad (FBD), etc.) instead of technical codes.</p>
+              <p><strong>Y-axis:</strong> Average processing time in seconds per file, indicating system performance at each location.</p>
+              <p><strong>Bar Colors:</strong> Performance grades - Green (excellent <2s), Blue (good 2-5s), Orange (average 5-10s), Red (slow >10s).</p>
+              <p><strong>Analysis:</strong> Identifies processing bottlenecks, network latency issues, or equipment performance variations across the monitoring network.</p>
+            </div>
           </div>
         </div>
       </div>
@@ -317,6 +424,7 @@
             <thead class="bg-gray-50">
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satellite System</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Time</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Size</th>
@@ -326,7 +434,15 @@
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let perf of statsData.performanceStats" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{perf.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <div class="text-sm font-medium text-gray-900">{{getSourceCodeDisplayName(perf.locationName)}}</div>
+                  <div class="text-xs text-gray-500">({{perf.locationName}})</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span [class]="'px-2 py-1 text-xs rounded-full ' + getSatelliteSystemClass(getSatelliteSystem(perf.locationName))">
+                    {{getSatelliteSystem(perf.locationName)}}
+                  </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(perf.fileCount)}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDuration(perf.averageProcessingTime)}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatFileSize(perf.averageFileSizeMB)}}</td>
@@ -339,6 +455,21 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Performance Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Performance Metrics</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          System performance analysis tracks processing efficiency and resource utilization for optimal data handling.
+        </p>
+        <div class="text-sm text-gray-700 space-y-1">
+          <p><strong>Processing Time:</strong> Average time to parse, validate, and store each file, measured from upload to database commit.</p>
+          <p><strong>File Size Analysis:</strong> Distribution of upload sizes helps optimize memory allocation and processing buffers.</p>
+          <p><strong>Lines Skipped:</strong> Invalid or malformed data lines excluded during processing, indicating data quality issues.</p>
+          <p><strong>Performance Grades:</strong> A+ (excellent <2s), A (good 2-5s), B (average 5-10s), C (slow >10s) based on processing times.</p>
+          <p><strong>Throughput Analysis:</strong> Chart shows files processed per location over time, revealing system capacity and bottlenecks.</p>
         </div>
       </div>
     </div>
@@ -381,6 +512,21 @@
           </table>
         </div>
       </div>
+
+      <!-- Missing Files Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Missing Files Analysis</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          Gap analysis identifies missing data uploads based on expected daily file patterns from each monitoring location.
+        </p>
+        <div class="text-sm text-gray-700 space-y-1">
+          <p><strong>MJD (Modified Julian Day):</strong> Astronomical day numbering system used for precise date tracking in satellite timing operations.</p>
+          <p><strong>Expected File:</strong> Anticipated filename pattern based on location code and date (e.g., GZLMB1_60123.dat).</p>
+          <p><strong>Days Missing:</strong> Number of consecutive days without data uploads, indicating potential equipment or communication issues.</p>
+          <p><strong>Severity Levels:</strong> Low (1-2 days), Medium (3-7 days), High (8-14 days), Critical (>14 days) based on continuity requirements.</p>
+          <p><strong>Gap Calculation:</strong> Compares expected daily uploads against actual received files, accounting for weekend/holiday schedules.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Recent Uploads Tab -->
@@ -400,6 +546,7 @@
               <tr>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Satellite System</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MJD</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Time</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Records</th>
@@ -411,7 +558,17 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr *ngFor="let upload of statsData.recentUploads" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{upload.fileName}}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{upload.locationName}}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <div class="flex flex-col">
+                    <span class="font-medium">{{getSourceCodeDisplayName(upload.source2Code)}}</span>
+                    <span class="text-xs text-gray-500">({{upload.source2Code}})</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span [class]="'px-2 py-1 text-xs rounded-full ' + getSatelliteSystemClass(getSatelliteSystem(upload.source2Code))">
+                    {{getSatelliteSystem(upload.source2Code)}}
+                  </span>
+                </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{upload.mjd}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatDateTime(upload.uploadTimestamp)}}</td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{formatNumber(upload.totalRecords)}}</td>
@@ -425,6 +582,23 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Recent Uploads Information -->
+      <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="font-medium mb-2">About Recent Uploads</h4>
+        <p class="text-sm text-gray-700 mb-2">
+          Real-time monitoring of file uploads shows latest data processing activity and system health across all locations.
+        </p>
+        <div class="text-sm text-gray-700 space-y-1">
+          <p><strong>File Name:</strong> Uploaded file identifier following standard naming convention (LocationCode_MJD.dat).</p>
+          <p><strong>Location:</strong> Shows meaningful receiver name (e.g., BLR_TS1, NPLI_GPS, FRD_TS2) instead of technical codes, making it easy to identify the data source.</p>
+          <p><strong>Upload Time:</strong> Server timestamp when file was received and processing began, showing data freshness.</p>
+          <p><strong>Quality Score:</strong> Percentage of valid data records (0-100%), calculated as (valid records / total records) × 100%.</p>
+          <p><strong>Processing Time:</strong> Duration from file receipt to database storage completion, indicating system performance.</p>
+          <p><strong>Status Indicators:</strong> Processing (ongoing), Success (completed), Failed (errors detected), Pending (queued for processing).</p>
+          <p><strong>Activity Monitoring:</strong> Most recent uploads displayed first to track continuous data flow and identify processing bottlenecks.</p>
         </div>
       </div>
     </div>
