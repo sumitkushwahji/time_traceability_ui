@@ -189,7 +189,7 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
           tension: 0.3,
         },
         {
-          label: 'CV Diff',
+          label: 'Time Diff',
           data: sliced.map((d) => d.avgRefsysDifference),
           borderColor: consistentColors[2], // Green
           tension: 0.3,

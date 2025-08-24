@@ -68,6 +68,17 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     guwahati: ['GZLGHT1', 'IRGHT1'],
   };
 
+  // Location name to abbreviation mapping for plot titles
+  private readonly locationAbbreviationMap: { [key: string]: string } = {
+    npl: 'NPL',
+    bangalore: 'BLR',
+    faridabad: 'FBD', 
+    ahmedabad: 'AMD',
+    bhubaneshwar: 'BBS',
+    drc: 'DRC',
+    guwahati: 'GHY',
+  };
+
   constructor(
     private satDataService: SatDataService,
     private filterService: FilterService,
@@ -333,7 +344,15 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
         },
         title: {
           display: true,
-          text: `${this.dataIdentifier ? this.dataIdentifier.charAt(0).toUpperCase() + this.dataIdentifier.slice(1) : 'Location'} CV Differences by Source2${this.selectedFilter !== 'ALL' ? ` (${this.selectedFilter})` : ''}`,
+          text: this.getPlotTitle(),
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
         },
         tooltip: {
           mode: 'index' as const,
@@ -362,7 +381,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
           display: true,
           title: {
             display: true,
-            text: 'CV Diff',
+            text: 'Time Difference (ns)',
           },
           grid: {
             color: 'rgba(0, 0, 0, 0.1)',
@@ -424,6 +443,18 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     const hue = Math.abs(hash) % 360;
     console.log(`⚠️  Using generated color for unknown source: ${source2} - hsl(${hue}, 70%, 50%)`);
     return `hsl(${hue}, 70%, 50%)`;
+  }
+
+  private getPlotTitle(): string {
+    if (!this.dataIdentifier) {
+      return 'Common-View Time Transfer Performance';
+    }
+
+    // Get location abbreviation for title
+    const locationAbbr = this.locationAbbreviationMap[this.dataIdentifier] || this.dataIdentifier.toUpperCase();
+    const locationName = this.dataIdentifier.charAt(0).toUpperCase() + this.dataIdentifier.slice(1);
+    
+    return `Common-View Time Transfer Performance between NPLI and ${locationName} (${locationAbbr})`;
   }
 
   onDataLimitChange(): void {

@@ -100,6 +100,17 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     guwahati: ['GZLGHT1', 'IRGHT1'],
   };
 
+  // Location name to abbreviation mapping for plot titles
+  readonly locationAbbreviationMap: { [key: string]: string } = {
+    npl: 'NPL',
+    bangalore: 'BLR',
+    faridabad: 'FBD', 
+    ahmedabad: 'AMD',
+    bhubaneshwar: 'BBS',
+    drc: 'DRC',
+    guwahati: 'GHY',
+  };
+
   constructor(
     private satDataService: SatDataService,
     private filterService: FilterService,
@@ -116,6 +127,9 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'] || '';
     
     console.log(`🔧 Link Stability ngOnInit: dataIdentifier="${this.dataIdentifier}", dataLimit=${this.dataLimit}`);
+    
+    // Update chart titles now that we have the data identifier
+    this.updateChartTitles();
     
     // Subscribe to filter changes
     this.filterService.filter$
@@ -146,10 +160,23 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   }
 
   private initializeChartOptions(): void {
+    // Initialize with basic options - title will be set dynamically later
     this.plotChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
+        title: {
+          display: true,
+          text: '', // Will be set dynamically
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        },
         legend: {
           position: 'top' as const,
         },
@@ -168,7 +195,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         y: {
           title: {
             display: true,
-            text: 'CV Difference (ns)',
+            text: 'Time Difference (ns)',
           },
         },
       },
@@ -178,6 +205,18 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
+        title: {
+          display: true,
+          text: '', // Will be set dynamically
+          font: {
+            size: 16,
+            weight: 'bold'
+          },
+          padding: {
+            top: 10,
+            bottom: 20
+          }
+        },
         legend: {
           position: 'top' as const,
         },
@@ -209,6 +248,25 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         },
       },
     };
+  }
+
+  private updateChartTitles(): void {
+    if (!this.dataIdentifier) return;
+
+    // Get location abbreviation for title
+    const locationAbbr = this.locationAbbreviationMap[this.dataIdentifier] || this.dataIdentifier?.toUpperCase() || 'UNKNOWN';
+    const locationName = this.dataIdentifier?.charAt(0).toUpperCase() + this.dataIdentifier?.slice(1);
+    const plotTitle = `Common-View Time Transfer Performance between NPLI and ${locationName} (${locationAbbr})`;
+
+    // Update plot chart title
+    if (this.plotChartOptions?.plugins?.title) {
+      this.plotChartOptions.plugins.title.text = plotTitle;
+    }
+
+    // Update TDEV chart title  
+    if (this.tdevChartOptions?.plugins?.title) {
+      this.tdevChartOptions.plugins.title.text = `Time Deviation Analysis - ${plotTitle}`;
+    }
   }
 
   private loadData(): void {
@@ -505,7 +563,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       const color = getConsistentColorForStation(station);
 
       datasets.push({
-        label: `${station} CV Diff`,
+        label: `${station} Time Diff`,
         data: dataPoints,
         borderColor: color,
         backgroundColor: 'transparent',
@@ -858,7 +916,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const csvContent = 'Time,CV Difference (ns)\n' + 
+    const csvContent = 'Time,Time Difference (ns)\n' + 
       (this.plotChartData.labels as string[])?.map((label: string, i: number) => 
         `"${label}",${this.plotChartData?.datasets[0]?.data[i] || ''}`
       ).join('\n');
