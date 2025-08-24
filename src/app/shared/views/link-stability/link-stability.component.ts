@@ -57,7 +57,7 @@ interface SatData2 {
 export class LinkStabilityComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
-  // Use same data structure as Plot View for consistent RefSys Diff calculations
+  // Use same data structure as Plot View for consistent CV Diff calculations
   rawData: SatData[] = [];
   filteredData: SatData[] = [];
   
@@ -168,7 +168,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         y: {
           title: {
             display: true,
-            text: 'RefSys Difference (ns)',
+            text: 'CV Difference (ns)',
           },
         },
       },
@@ -383,7 +383,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     }).filter(record => Object.keys(record.locationDiffs).length > 0);
   }
 
-  // Helper method to get average RefSys Diff from locationDiffs object (same as Plot View logic)
+  // Helper method to get average CV Diff from locationDiffs object (same as Plot View logic)
   private getAverageRefSysDiff(record: SatData2): number {
     const locationDiffs = record.locationDiffs;
     const values = Object.values(locationDiffs);
@@ -501,7 +501,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       const color = stationColors[station] || this.getRandomColor();
 
       datasets.push({
-        label: `${station} RefSys Diff`,
+        label: `${station} CV Diff`,
         data: dataPoints,
         borderColor: color,
         backgroundColor: 'transparent',
@@ -563,10 +563,10 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       const refSysDifferences = sliced.map(item => item.avgRefsysDifference);
 
       console.log(`Calculating TDEV for location: ${this.dataIdentifier}`);
-      console.log(`Using ${refSysDifferences.length} RefSys Diff data points (with limit: ${this.dataLimit})`);
-      console.log('RefSys Diff range:', Math.min(...refSysDifferences), 'to', Math.max(...refSysDifferences), 'ns');
+      console.log(`Using ${refSysDifferences.length} CV Diff data points (with limit: ${this.dataLimit})`);
+      console.log('CV Diff range:', Math.min(...refSysDifferences), 'to', Math.max(...refSysDifferences), 'ns');
 
-      // Calculate MDEV first using RefSys Differences
+      // Calculate MDEV first using CV Differences
       const mdevData = this.calculateMDEV(refSysDifferences, 960); // 960s = 16 minutes typical interval
       
       // Calculate TDEV from MDEV
@@ -712,7 +712,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const csvContent = 'Time,RefSys Difference (ns)\n' + 
+    const csvContent = 'Time,CV Difference (ns)\n' + 
       (this.plotChartData.labels as string[])?.map((label: string, i: number) => 
         `"${label}",${this.plotChartData?.datasets[0]?.data[i] || ''}`
       ).join('\n');
@@ -720,7 +720,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `RefSys_Diff_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `CV_Diff_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

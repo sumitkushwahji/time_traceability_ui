@@ -43,11 +43,11 @@
     <span class="ml-3 text-lg text-gray-600">Processing...</span>
   </div>
 
-  <!-- RefSys Diff Plot -->
+  <!-- CV Diff Plot -->
   <div *ngIf="plotChartData && !isLoading && isBrowser" class="mb-6">
     <div class="bg-white rounded-lg shadow-md p-6">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">RefSys Diff for {{ dataIdentifier | titlecase }}</h3>
+        <h3 class="text-lg font-semibold">CV Diff for {{ dataIdentifier | titlecase }}</h3>
         <button 
           (click)="downloadPlotCSV()"
           class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm">
@@ -67,11 +67,11 @@
       <div class="mt-4 flex flex-wrap gap-4 text-sm">
         <div class="flex items-center">
           <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-          <span>RefSys differences within ±5 ns</span>
+          <span>CV differences within ±5 ns</span>
         </div>
         <div class="flex items-center">
           <span class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></span>
-          <span>RefSys differences outside ±5 ns</span>
+          <span>CV differences outside ±5 ns</span>
         </div>
       </div>
     </div>
@@ -102,12 +102,12 @@
         <h4 class="font-medium mb-2">About Time Deviation (TDEV)</h4>
         <p class="text-sm text-gray-700 mb-2">
           Time Deviation (TDEV) is a measure of frequency stability that characterizes the time error 
-          accumulated over different averaging intervals. This analysis is calculated using RefSys Diff data 
+          accumulated over different averaging intervals. This analysis is calculated using CV Diff data 
           for location {{ dataIdentifier | titlecase }}, derived from the Modified Allan Deviation (MDEV).
         </p>
         <p class="text-sm text-gray-700">
           <strong>Formula:</strong> TDEV(τ) = τ × MDEV(τ) / √3 <br>
-          <strong>Data Source:</strong> RefSys Difference values for {{ dataIdentifier | titlecase }}
+          <strong>Data Source:</strong> CV Difference values for {{ dataIdentifier | titlecase }}
         </p>
       </div>
     </div>

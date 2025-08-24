@@ -54,7 +54,7 @@
             <th class="p-2 cursor-pointer" (click)="setSort('source2')">Source 2 <span *ngIf="sortColumn === 'source2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
             <th class="p-2 cursor-pointer" (click)="setSort('avg1')">Avg 1 <span *ngIf="sortColumn === 'avg1'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
             <th class="p-2 cursor-pointer" (click)="setSort('avg2')">Avg 2 <span *ngIf="sortColumn === 'avg2'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
-            <th class="p-2 cursor-pointer" (click)="setSort('avgRefsysDifference')">RefSys Diff <span *ngIf="sortColumn === 'avgRefsysDifference'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
+            <th class="p-2 cursor-pointer" (click)="setSort('avgRefsysDifference')">CV Diff <span *ngIf="sortColumn === 'avgRefsysDifference'">{{ sortDirection === 'asc' ? '▲' : '▼' }}</span></th>
           </tr>
         </thead>
         <tbody>

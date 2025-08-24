@@ -333,7 +333,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
         },
         title: {
           display: true,
-          text: `${this.dataIdentifier ? this.dataIdentifier.charAt(0).toUpperCase() + this.dataIdentifier.slice(1) : 'Location'} RefSys Differences by Source2${this.selectedFilter !== 'ALL' ? ` (${this.selectedFilter})` : ''}`,
+          text: `${this.dataIdentifier ? this.dataIdentifier.charAt(0).toUpperCase() + this.dataIdentifier.slice(1) : 'Location'} CV Differences by Source2${this.selectedFilter !== 'ALL' ? ` (${this.selectedFilter})` : ''}`,
         },
         tooltip: {
           mode: 'index' as const,
@@ -362,7 +362,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
           display: true,
           title: {
             display: true,
-            text: 'RefSys Diff',
+            text: 'CV Diff',
           },
           grid: {
             color: 'rgba(0, 0, 0, 0.1)',
