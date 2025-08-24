@@ -563,24 +563,62 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       // Use the same data slicing as the chart display
       const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
       
-      // Use avgRefsysDifference directly like Plot View does
-      const refSysDifferences = sliced.map(item => item.avgRefsysDifference);
-
       console.log(`Calculating TDEV for location: ${this.dataIdentifier}`);
-      console.log(`Using ${refSysDifferences.length} CV Diff data points (with limit: ${this.dataLimit})`);
-      console.log('CV Diff range:', Math.min(...refSysDifferences), 'to', Math.max(...refSysDifferences), 'ns');
+      console.log(`Using ${sliced.length} total data points (with limit: ${this.dataLimit})`);
 
-      // Calculate MDEV first using CV Differences
-      const mdevData = this.calculateMDEV(refSysDifferences, 960); // 960s = 16 minutes typical interval
-      
-      // Calculate TDEV from MDEV
-      const tdevData = this.calculateTDEV(mdevData);
+      // Get all unique receivers/stations for this location - same as plot view
+      const allStations = new Set<string>();
+      sliced.forEach(d => {
+        if (d.source2) {
+          allStations.add(d.source2);
+        }
+      });
 
-      console.log(`MDEV data points: ${mdevData.length}`);
-      console.log(`TDEV data points: ${tdevData.length}`);
+      const stationArray = Array.from(allStations);
+      console.log(`Found ${stationArray.length} receivers: ${stationArray.join(', ')}`);
 
-      // Plot TDEV results
-      this.plotTimeDeviation(mdevData, tdevData);
+      // Calculate TDEV/MDEV for each receiver separately
+      const allMdevData: { station: string; data: { tau: number; MDEV: number }[] }[] = [];
+      const allTdevData: { station: string; data: { tau: number; TDEV: number }[] }[] = [];
+
+      stationArray.forEach(station => {
+        console.log(`\nCalculating TDEV for receiver: ${station}`);
+        
+        // Get data for this specific station only
+        const stationData = sliced.filter(d => d.source2 === station);
+        
+        if (stationData.length < 10) {
+          console.log(`Skipping ${station}: insufficient data points (${stationData.length})`);
+          return;
+        }
+
+        // Extract CV differences for this station
+        const stationRefSysDifferences = stationData.map(item => item.avgRefsysDifference);
+        
+        console.log(`${station}: ${stationRefSysDifferences.length} CV Diff points, range: ${Math.min(...stationRefSysDifferences).toFixed(2)} to ${Math.max(...stationRefSysDifferences).toFixed(2)} ns`);
+
+        // Calculate MDEV for this station
+        const mdevData = this.calculateMDEV(stationRefSysDifferences, 960); // 960s = 16 minutes typical interval
+        
+        // Calculate TDEV from MDEV for this station
+        const tdevData = this.calculateTDEV(mdevData);
+
+        console.log(`${station}: MDEV=${mdevData.length} points, TDEV=${tdevData.length} points`);
+
+        allMdevData.push({ station, data: mdevData });
+        allTdevData.push({ station, data: tdevData });
+      });
+
+      if (allTdevData.length === 0) {
+        this.error = 'No receivers had sufficient data points for TDEV analysis.';
+        this.isLoading = false;
+        return;
+      }
+
+      console.log(`\nFinal TDEV calculation: ${allTdevData.length} receivers processed`);
+
+      // Plot TDEV results for all receivers
+      this.plotTimeDeviationMultiReceiver(allMdevData, allTdevData);
       this.showTdevAnalysis = true;
       
     } catch (error) {
@@ -659,6 +697,76 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     }));
   }
 
+  private plotTimeDeviationMultiReceiver(
+    allMdevData: { station: string; data: { tau: number; MDEV: number }[] }[], 
+    allTdevData: { station: string; data: { tau: number; TDEV: number }[] }[]
+  ): void {
+    console.log('Plotting time deviation for multiple receivers...');
+
+    // Use the first station's tau values as labels (they should all be the same)
+    const labels = allTdevData[0]?.data.map(entry => entry.tau.toString()) || [];
+
+    const datasets: any[] = [];
+
+    // 🎨 Use same consistent color scheme as plot view
+    const getConsistentColorForStation = (station: string): string => {
+      const currentLocationSources = this.locationStationMap[this.dataIdentifier] ?? [];
+      const stationIndex = currentLocationSources.indexOf(station);
+      
+      const consistentColors = [
+        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', 
+        '#EC4899', '#6B7280', '#14B8A6', '#F97316', '#06B6D4',
+        '#84CC16', '#A855F7', '#E11D48', '#0891B2', '#65A30D'
+      ];
+      
+      if (stationIndex !== -1 && stationIndex < consistentColors.length) {
+        return consistentColors[stationIndex];
+      }
+      
+      return this.getRandomColor();
+    };
+
+    // Add MDEV datasets for each receiver
+    allMdevData.forEach(({ station, data }) => {
+      const color = getConsistentColorForStation(station);
+      
+      datasets.push({
+        data: data.map(entry => entry.MDEV),
+        label: `${station} MDEV`,
+        borderColor: color,
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0.1,
+        borderDash: [5, 5], // Dashed line for MDEV
+        pointRadius: 2,
+      });
+    });
+
+    // Add TDEV datasets for each receiver  
+    allTdevData.forEach(({ station, data }) => {
+      const color = getConsistentColorForStation(station);
+      
+      datasets.push({
+        data: data.map(entry => entry.TDEV),
+        label: `${station} TDEV`,
+        borderColor: color,
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0.1,
+        borderWidth: 2, // Solid thicker line for TDEV
+        pointRadius: 3,
+      });
+    });
+
+    this.tdevChartData = {
+      labels,
+      datasets,
+    };
+
+    console.log(`Time deviation chart data: ${datasets.length} datasets for ${allTdevData.length} receivers`);
+  }
+
+  // Keep the old method for backward compatibility, but mark as deprecated
   private plotTimeDeviation(mdevData: any[], tdevData: any[]): void {
     console.log('Plotting time deviation...');
 
@@ -696,15 +804,49 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const csvContent = 'Averaging Time (τ),MDEV,TDEV\n' + 
-      (this.tdevChartData.labels as string[])?.map((label: string, i: number) => 
-        `${label},${this.tdevChartData?.datasets.find(d => d.label?.includes('MDEV'))?.data[i] || ''},${this.tdevChartData?.datasets.find(d => d.label?.includes('TDEV'))?.data[i] || ''}`
-      ).join('\n');
+    // Build CSV header with all receiver columns
+    const mdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('MDEV'));
+    const tdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('TDEV'));
+    
+    let csvHeader = 'Averaging Time (τ)';
+    
+    // Add MDEV columns for each receiver
+    mdevDatasets.forEach(dataset => {
+      const receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
+      csvHeader += `,${receiver} MDEV`;
+    });
+    
+    // Add TDEV columns for each receiver
+    tdevDatasets.forEach(dataset => {
+      const receiver = dataset.label?.replace(' TDEV', '') || 'Unknown';
+      csvHeader += `,${receiver} TDEV`;
+    });
+    
+    csvHeader += '\n';
+
+    // Build CSV rows
+    const csvRows = (this.tdevChartData.labels as string[])?.map((label: string, i: number) => {
+      let row = label;
+      
+      // Add MDEV values for each receiver
+      mdevDatasets.forEach(dataset => {
+        row += `,${dataset.data[i] || ''}`;
+      });
+      
+      // Add TDEV values for each receiver
+      tdevDatasets.forEach(dataset => {
+        row += `,${dataset.data[i] || ''}`;
+      });
+      
+      return row;
+    }).join('\n') || '';
+
+    const csvContent = csvHeader + csvRows;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `TDEV_Analysis_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `TDEV_Analysis_AllReceivers_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
