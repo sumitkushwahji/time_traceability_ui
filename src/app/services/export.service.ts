@@ -9,19 +9,38 @@ export class ExportService {
   }
 
   exportAsJSON(data: any[], filename: string) {
-    const json = JSON.stringify(data, null, 2);
+    // Round numeric values to 2 decimal places before JSON export
+    const roundedData = this.roundNumericValues(data);
+    const json = JSON.stringify(roundedData, null, 2);
     this.download(json, filename, 'application/json');
   }
 
   exportAsTXT(data: any[], filename: string) {
-    const txt = data.map((row) => Object.values(row).join('\t')).join('\n');
+    const txt = data.map((row) => 
+      Object.values(row).map(value => {
+        // Round numeric values to 2 decimal places
+        if (typeof value === 'number' && !isNaN(value)) {
+          return Number(value.toFixed(2));
+        }
+        return value;
+      }).join('\t')
+    ).join('\n');
     this.download(txt, filename, 'text/plain');
   }
 
   exportAsSQL(data: any[], tableName: string, filename: string) {
     const columns = Object.keys(data[0]);
     const values = data.map(
-      (row) => `(${columns.map((col) => `'${row[col]}'`).join(', ')})`
+      (row) => `(${columns.map((col) => {
+        let value = row[col];
+        
+        // Round numeric values to 2 decimal places
+        if (typeof value === 'number' && !isNaN(value)) {
+          return Number(value.toFixed(2));
+        }
+        
+        return `'${value}'`;
+      }).join(', ')})`
     );
     const sql = `INSERT INTO ${tableName} (${columns.join(
       ', '
@@ -62,10 +81,37 @@ export class ExportService {
     saveAs(blob, filename);
   }
 
+  // Helper method to round numeric values to 2 decimal places
+  private roundNumericValues(data: any[]): any[] {
+    return data.map(row => {
+      const roundedRow: any = {};
+      Object.keys(row).forEach(key => {
+        let value = row[key];
+        
+        // Round numeric values to 2 decimal places
+        if (typeof value === 'number' && !isNaN(value)) {
+          value = Number(value.toFixed(2));
+        }
+        
+        roundedRow[key] = value;
+      });
+      return roundedRow;
+    });
+  }
+
   private convertToCSV(data: any[]): string {
     const headers = Object.keys(data[0]);
     const rows = data.map((row) =>
-      headers.map((field) => `"${row[field]}"`).join(',')
+      headers.map((field) => {
+        let value = row[field];
+        
+        // Round numeric values to 2 decimal places
+        if (typeof value === 'number' && !isNaN(value)) {
+          value = Number(value.toFixed(2));
+        }
+        
+        return `"${value}"`;
+      }).join(',')
     );
     return [headers.join(','), ...rows].join('\n');
   }

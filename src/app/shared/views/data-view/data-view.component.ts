@@ -174,7 +174,9 @@ export class DataViewComponent implements OnInit {
   }
 
   private exportJSON(): void {
-    const jsonStr = JSON.stringify(this.filteredData, null, 2);
+    // Round numeric values to 2 decimal places before JSON export
+    const roundedData = this.roundNumericValues(this.filteredData);
+    const jsonStr = JSON.stringify(roundedData, null, 2);
     this.downloadFile(jsonStr, 'data.json', 'application/json');
   }
 
@@ -184,6 +186,24 @@ export class DataViewComponent implements OnInit {
 
   private exportSQL(): void {
     console.log('Export SQL triggered');
+  }
+
+  // Helper method to round numeric values to 2 decimal places
+  private roundNumericValues(data: any[]): any[] {
+    return data.map(row => {
+      const roundedRow: any = {};
+      Object.keys(row).forEach(key => {
+        let value = (row as any)[key];
+        
+        // Round numeric values to 2 decimal places
+        if (typeof value === 'number' && !isNaN(value)) {
+          value = Number(value.toFixed(2));
+        }
+        
+        roundedRow[key] = value;
+      });
+      return roundedRow;
+    });
   }
 
   private downloadFile(content: string, filename: string, contentType: string): void {

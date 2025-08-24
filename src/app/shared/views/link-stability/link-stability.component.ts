@@ -888,12 +888,16 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       
       // Add MDEV values for each receiver
       mdevDatasets.forEach(dataset => {
-        row += `,${dataset.data[i] || ''}`;
+        const value = dataset.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
+        row += `,${formattedValue}`;
       });
       
       // Add TDEV values for each receiver
       tdevDatasets.forEach(dataset => {
-        row += `,${dataset.data[i] || ''}`;
+        const value = dataset.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
+        row += `,${formattedValue}`;
       });
       
       return row;
@@ -917,9 +921,11 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     }
 
     const csvContent = 'Time,Time Difference (ns)\n' + 
-      (this.plotChartData.labels as string[])?.map((label: string, i: number) => 
-        `"${label}",${this.plotChartData?.datasets[0]?.data[i] || ''}`
-      ).join('\n');
+      (this.plotChartData.labels as string[])?.map((label: string, i: number) => {
+        const value = this.plotChartData?.datasets[0]?.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
+        return `"${label}",${formattedValue}`;
+      }).join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');

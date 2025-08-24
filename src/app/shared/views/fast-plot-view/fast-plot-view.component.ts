@@ -364,7 +364,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
             label: (context: any) => {
               const value = context.raw;
               if (value === null) return '';
-              return `${context.dataset.label}: ${Number(value).toFixed(6)}`;
+              return `${context.dataset.label}: ${Number(value).toFixed(2)}`;
             }
           }
         },
@@ -476,6 +476,10 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     const max = Math.max(...values);
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
 
-    return { min, max, avg };
+    return { 
+      min: Number(min.toFixed(2)), 
+      max: Number(max.toFixed(2)), 
+      avg: Number(avg.toFixed(2)) 
+    };
   }
 }
