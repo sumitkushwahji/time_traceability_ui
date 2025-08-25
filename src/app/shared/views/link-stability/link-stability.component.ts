@@ -6,6 +6,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { ChartConfiguration } from 'chart.js';
 import { SatDataService } from '../../../services/sat-data.service';
+import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { FilterService } from '../../../services/filter.service';
 
 // Use same interface as Plot View for identical data processing
@@ -563,7 +564,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       const color = getConsistentColorForStation(station);
 
       datasets.push({
-        label: `${station} Time Diff`,
+        label: `${getReceiverDisplayName(station)}`,
         data: dataPoints,
         borderColor: color,
         backgroundColor: 'transparent',
@@ -787,10 +788,9 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     // Add MDEV datasets for each receiver
     allMdevData.forEach(({ station, data }) => {
       const color = getConsistentColorForStation(station);
-      
       datasets.push({
         data: data.map(entry => entry.MDEV),
-        label: `${station} MDEV`,
+        label: `${getReceiverDisplayName(station)} MDEV`,
         borderColor: color,
         backgroundColor: 'transparent',
         fill: false,
@@ -803,10 +803,9 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     // Add TDEV datasets for each receiver  
     allTdevData.forEach(({ station, data }) => {
       const color = getConsistentColorForStation(station);
-      
       datasets.push({
         data: data.map(entry => entry.TDEV),
-        label: `${station} TDEV`,
+        label: `${getReceiverDisplayName(station)} TDEV`,
         borderColor: color,
         backgroundColor: 'transparent',
         fill: false,
@@ -870,13 +869,16 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
 
     // Add MDEV columns for each receiver
     mdevDatasets.forEach(dataset => {
-      const receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
+      // If label is already mapped, use as is, else map
+      let receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
+      receiver = getReceiverDisplayName(receiver);
       csvHeader += `,${receiver} MDEV`;
     });
 
     // Add TDEV columns for each receiver
     tdevDatasets.forEach(dataset => {
-      const receiver = dataset.label?.replace(' TDEV', '') || 'Unknown';
+      let receiver = dataset.label?.replace(' TDEV', '') || 'Unknown';
+      receiver = getReceiverDisplayName(receiver);
       csvHeader += `,${receiver} TDEV`;
     });
 
@@ -923,7 +925,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     // Build CSV header: Time, Receiver1, Receiver2, ...
     const header = ['Time'];
     this.plotChartData.datasets.forEach((ds: any) => {
-      header.push(ds.label || 'Receiver');
+      header.push(getReceiverDisplayName(ds.label) || 'Receiver');
     });
     const csvHeader = header.join(',') + '\n';
 

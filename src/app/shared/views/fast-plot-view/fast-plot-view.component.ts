@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
@@ -319,7 +320,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
         console.log(`📈 Dataset for ${source2}: ${dataPoints.filter(p => p !== null).length} non-null points`);
 
         return {
-          label: source2,
+          label: getReceiverDisplayName(source2),
           data: dataPoints,
           borderColor: color,
           backgroundColor: color + '20', // Add transparency

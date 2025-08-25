@@ -6,6 +6,7 @@ import { Subject, takeUntil } from 'rxjs';
 
 import { FormsModule } from '@angular/forms';
 import { SatData2, SatDataService } from '../../../services/sat-data.service';
+import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { FilterService } from '../../../services/filter.service';
 
 @Component({
@@ -189,7 +190,7 @@ export class PlotViewComponent implements OnInit, OnDestroy {
       console.log(`🎨 Plot View: Assigning color for location ${loc} at position ${index}: ${color}`);
 
       return {
-        label: loc,
+          label: getReceiverDisplayName(loc),
         data: data.map(d => d.locationDiffs[loc] ?? null),
         borderColor: color,
         backgroundColor: color,
