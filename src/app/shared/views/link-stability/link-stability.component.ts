@@ -865,41 +865,41 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     // Build CSV header with all receiver columns
     const mdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('MDEV'));
     const tdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('TDEV'));
-    
+
     let csvHeader = 'Averaging Time (τ)';
-    
+
     // Add MDEV columns for each receiver
     mdevDatasets.forEach(dataset => {
       const receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
       csvHeader += `,${receiver} MDEV`;
     });
-    
+
     // Add TDEV columns for each receiver
     tdevDatasets.forEach(dataset => {
       const receiver = dataset.label?.replace(' TDEV', '') || 'Unknown';
       csvHeader += `,${receiver} TDEV`;
     });
-    
+
     csvHeader += '\n';
 
-    // Build CSV rows
+    // Build CSV rows with exponential formatting
     const csvRows = (this.tdevChartData.labels as string[])?.map((label: string, i: number) => {
       let row = label;
-      
-      // Add MDEV values for each receiver
+
+      // Add MDEV values for each receiver in exponential format
       mdevDatasets.forEach(dataset => {
         const value = dataset.data[i];
-        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
+        const formattedValue = (value != null && typeof value === 'number') ? value.toExponential(2) : '';
         row += `,${formattedValue}`;
       });
-      
-      // Add TDEV values for each receiver
+
+      // Add TDEV values for each receiver in exponential format
       tdevDatasets.forEach(dataset => {
         const value = dataset.data[i];
-        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
+        const formattedValue = (value != null && typeof value === 'number') ? value.toExponential(2) : '';
         row += `,${formattedValue}`;
       });
-      
+
       return row;
     }).join('\n') || '';
 
