@@ -193,12 +193,12 @@ export class FileUploadDashboardComponent implements OnInit, OnDestroy {
     private fileUploadStatsService: FileUploadStatsService,
     private exportService: ExportService
   ) {
-    // Set default dates (last 30 days)
-    const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  // Set default dates (last 7 days)
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    this.endDate = now.toISOString().slice(0, 16);
-    this.startDate = thirtyDaysAgo.toISOString().slice(0, 16);
+  this.endDate = now.toISOString().slice(0, 16);
+  this.startDate = sevenDaysAgo.toISOString().slice(0, 16);
   }
 
   ngOnInit(): void {
