@@ -915,22 +915,34 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   }
 
   downloadPlotCSV(): void {
-    if (!this.plotChartData) {
+    if (!this.plotChartData || !this.plotChartData.labels || !this.plotChartData.datasets) {
       console.error('No plot data available for download.');
       return;
     }
 
-    const csvContent = 'Time,Time Difference (ns)\n' + 
-      (this.plotChartData.labels as string[])?.map((label: string, i: number) => {
-        const value = this.plotChartData?.datasets[0]?.data[i];
-        const formattedValue = (value != null && typeof value === 'number') ? value.toFixed(2) : '';
-        return `"${label}",${formattedValue}`;
-      }).join('\n');
+    // Build CSV header: Time, Receiver1, Receiver2, ...
+    const header = ['Time'];
+    this.plotChartData.datasets.forEach((ds: any) => {
+      header.push(ds.label || 'Receiver');
+    });
+    const csvHeader = header.join(',') + '\n';
+
+    // Build CSV rows
+    const labels = this.plotChartData.labels as string[];
+    const rows = labels.map((label: string, i: number) => {
+      const row = [`"${label}"`];
+      this.plotChartData.datasets.forEach((ds: any) => {
+        const value = ds.data[i];
+        row.push((value != null && typeof value === 'number') ? value.toFixed(2) : '');
+      });
+      return row.join(',');
+    });
+    const csvContent = csvHeader + rows.join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `CV_Diff_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `CV_Diff_AllReceivers_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
