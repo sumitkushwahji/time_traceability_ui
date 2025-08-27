@@ -46,8 +46,8 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   totalItems = 0;
   
   // Sorting
-  sortColumn = 'id';
-  sortDirection = 'asc';
+  sortColumn = 'mjd';
+  sortDirection = 'desc';
   
   // Filtering and search
   selectedFilter = 'NAVIC'; // Default to NAVIC instead of ALL
