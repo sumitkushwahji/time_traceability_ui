@@ -1,7 +1,7 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, Input } from '@angular/core'; // Added Input and OnDestroy
+import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, Input, ViewChild } from '@angular/core'; // Added Input and OnDestroy
 import { ChartData, ChartOptions } from 'chart.js';
-import { NgChartsModule } from 'ng2-charts';
+import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { Subject, takeUntil } from 'rxjs';
 
 import { FormsModule } from '@angular/forms';
@@ -20,6 +20,10 @@ export class PlotViewComponent implements OnInit, OnDestroy {
   // 'all' for dashboard-like views (aggregated data), 'specific' for city-specific views.
   @Input() dataType: 'all' | 'specific' = 'all';
   @Input() dataIdentifier?: string; // e.g., city name if dataType is 'specific'
+
+  
+   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  
 
   rawData: SatData2[] = [];
   filteredData: SatData2[] = [];
@@ -211,5 +215,49 @@ export class PlotViewComponent implements OnInit, OnDestroy {
       color += letters[Math.floor(Math.random() * 16)];
     }
     return color;
+  }
+
+   public downloadPlot(): void {
+    if (!this.chart || !this.chart.chart) {
+      console.error('Chart instance not found.');
+      return;
+    }
+
+    // Get the chart canvas
+    const chartCanvas = this.chart.chart.canvas as HTMLCanvasElement;
+    if (!chartCanvas) {
+      console.error('Chart canvas not found.');
+      return;
+    }
+
+    // Create a temporary canvas with white background
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = chartCanvas.width;
+    tempCanvas.height = chartCanvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) {
+      console.error('Failed to get temp canvas context.');
+      return;
+    }
+    // Fill with white background
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    // Draw the chart on top
+    ctx.drawImage(chartCanvas, 0, 0);
+
+    // Get the base64 image data from the temp canvas
+    const base64Image = tempCanvas.toDataURL('image/png');
+
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = base64Image;
+    link.download = `common-view-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
+
+    // Append the link to the body, click it, and then remove it
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log('✅ Plot download initiated with white background.');
   }
 }

@@ -1,8 +1,19 @@
 <div class="min-h-screen bg-slate-100 p-4">
   <div class="bg-white rounded-2xl shadow-lg p-4">
-    <h1 class="text-lg font-semibold mb-4 text-slate-700">
-      {{ dataIdentifier ? (dataIdentifier | titlecase) + ' Plot View' : 'Plot View' }}
-    </h1>
+
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-lg font-semibold text-slate-700">
+        {{ dataIdentifier ? (dataIdentifier | titlecase) + ' Plot View' : 'Plot View' }}
+      </h1>
+      <button 
+        (click)="downloadPlot()" 
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
+        [disabled]="!chartData || filteredData.length === 0"
+      >
+        Download Plot
+      </button>
+    </div>
+
 
     <!-- Loading indicator -->
     <div *ngIf="loading" class="flex justify-center items-center py-8">
@@ -28,7 +39,7 @@
             </option>
           </select>
         </div>
-
+        
         <!-- Data Summary -->
         <div class="text-sm text-gray-600">
           <span class="font-medium">{{ filteredData.length }}</span> data points

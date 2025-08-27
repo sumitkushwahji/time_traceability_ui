@@ -1,8 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { NgChartsModule } from 'ng2-charts';
+import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { SatDataService } from '../../../services/sat-data.service';
@@ -32,6 +32,8 @@ interface SatData {
 export class FastPlotViewComponent implements OnInit, OnDestroy {
   // Raw data from API (cached)
   allData: SatData[] = [];
+
+   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   
   // Filtered data for charts
   filteredData: SatData[] = [];
@@ -484,5 +486,49 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       max: Number(max.toFixed(2)), 
       avg: Number(avg.toFixed(2)) 
     };
+  }
+
+   public downloadPlot(): void {
+    if (!this.chart || !this.chart.chart) {
+      console.error('Chart instance not found.');
+      return;
+    }
+
+    // Get the chart canvas
+    const chartCanvas = this.chart.chart.canvas as HTMLCanvasElement;
+    if (!chartCanvas) {
+      console.error('Chart canvas not found.');
+      return;
+    }
+
+    // Create a temporary canvas with white background
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = chartCanvas.width;
+    tempCanvas.height = chartCanvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) {
+      console.error('Failed to get temp canvas context.');
+      return;
+    }
+    // Fill with white background
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    // Draw the chart on top
+    ctx.drawImage(chartCanvas, 0, 0);
+
+    // Get the base64 image data from the temp canvas
+    const base64Image = tempCanvas.toDataURL('image/png');
+
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = base64Image;
+    link.download = `common-view-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
+
+    // Append the link to the body, click it, and then remove it
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log('✅ Plot download initiated with white background.');
   }
 }
