@@ -56,12 +56,12 @@ export class PaginatedDataViewComponent implements OnInit, OnDestroy { // 🎯 I
   selectedFilter: string = 'ALL'; // This holds 'ALL', 'GPS', 'NAVIC', etc.
 
   // Mapping from identifier to source2 codes
-  private readonly locationSource2Map: { [key: string]: string[] } = {
+   private readonly locationSource2Map: { [key: string]: string[] } = {
     npl: ['GZLI2P', 'IRNPLI'],
     bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
-    faridabad: ['GZLMF1', 'GZLMF2', 'IRACCO'],
-    ahmedabad: ['GZLAHM1', 'IRAHM1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
-    bhubaneshwar: ['GZLBBS1', 'IRBBS1'],
+    faridabad: ['GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2'],
+    ahmedabad: ['GZLAHM1', 'IRLMA1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
+    bhubaneshwar: ['GZLBBS1', 'IRLMO1', 'IRLMO2'],
     drc: ['GZLDEL1', 'IRDEL1'],
     guwahati: ['GZLGHT1', 'IRGHT1'],
   };

@@ -157,14 +157,15 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
     // 🚀 PERFORMANCE OPTIMIZATION: For home page, use the same optimized bulk endpoint with ALL locations
     // Same pattern as FastPlotViewComponent for consistency
     const allSource2Values = [
-      'GZLMB1', 'GZLMB2', 'IRLMB1', 'IRLMB2', // Bangalore
-      'GZLMF1', 'GZLMF2', 'IRACCO', // Faridabad
-      'GZLAHM1', 'IRAHM1', 'GZLMA2', // Ahmedabad (added GZLMA2)
-      'GZLBBS1', 'IRBBS1', // Bhubaneshwar
+        'GZLMB1', 'GZLMB2', 'IRLMB1', 'IRLMB2', // Bangalore
+      'GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2', // Faridabad
+      'GZLAHM1', 'IRLMA1', 'GZLMA2', // Ahmedabad (added GZLMA2)
+      'GZLBBS1', 'IRLMO1', 'IRLMO2', // Bhubaneshwar
       'GZLDEL1', 'IRDEL1', // DRC
       'GZLGHT1', 'IRGHT1', // Guwahati
       'GZLI2P', 'IRNPLI' // NPL
     ];
+    
 
     console.log('🏠 Loading home page data for data view with optimized bulk endpoint...');
     const startTime = performance.now();

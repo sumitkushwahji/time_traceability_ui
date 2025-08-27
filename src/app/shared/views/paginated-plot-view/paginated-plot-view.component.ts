@@ -34,15 +34,16 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   readonly locationSource2Map: { [key: string]: string[] } = {
-    npl: ['GZLI2P', 'IRNPLI'],
+     npl: ['GZLI2P', 'IRNPLI'],
     bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
-    faridabad: ['GZLMF1', 'GZLMF2', 'IRACCO'],
-    ahmedabad: ['GZLAHM1', 'IRAHM1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
-    bhubaneshwar: ['GZLBBS1', 'IRBBS1'],
+    faridabad: ['GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2'],
+    ahmedabad: ['GZLAHM1', 'IRLMA1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
+    bhubaneshwar: ['GZLBBS1', 'IRLMO1', 'IRLMO2'],
     drc: ['GZLDEL1', 'IRDEL1'],
     guwahati: ['GZLGHT1', 'IRGHT1'],
   };
 
+  
   constructor(
     private route: ActivatedRoute,
     private satDataService: SatDataService,
