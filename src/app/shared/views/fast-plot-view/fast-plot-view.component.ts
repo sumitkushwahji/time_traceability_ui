@@ -8,6 +8,7 @@ import { Subject, takeUntil } from 'rxjs';
 import { SatDataService } from '../../../services/sat-data.service';
 import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
+import { locationSource2Map } from '../../location-source2.map';
 
 interface SatData {
   id: string;
@@ -61,15 +62,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   dataIdentifier?: string;
   
   // Location configuration (same as FastDataViewComponent)
-    private readonly locationSource2Map: { [key: string]: string[] } = {
-    npl: ['GZLI2P', 'IRNPLI'],
-    bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
-    faridabad: ['GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2'],
-    ahmedabad: ['GZLAHM1', 'IRLMA1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
-    bhubaneshwar: ['GZLBBS1', 'IRLMO1', 'IRLMO2'],
-    drc: ['GZLDEL1', 'IRDEL1'],
-    guwahati: ['GZLGHT1', 'IRGHT1'],
-  };
+  // Now imported from shared/location-source2.map.ts
 
 
   // Location name to abbreviation mapping for plot titles
@@ -125,7 +118,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     this.loading = true;
     
     const source2Codes = this.dataIdentifier 
-      ? this.locationSource2Map[this.dataIdentifier] ?? null 
+      ? locationSource2Map[this.dataIdentifier] ?? null 
       : null;
 
     if (source2Codes) {
@@ -166,17 +159,9 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   }
 
   private loadDataFallback(): void {
-    // 🚀 PERFORMANCE OPTIMIZATION: For home page, use the same optimized bulk endpoint with ALL locations
-    // but load data more efficiently
-    const allSource2Values = [
-      'GZLMB1', 'GZLMB2', 'IRLMB1', 'IRLMB2', // Bangalore
-      'GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2', // Faridabad
-      'GZLAHM1', 'IRLMA1', 'GZLMA2', // Ahmedabad (added GZLMA2)
-      'GZLBBS1', 'IRLMO1', 'IRLMO2', // Bhubaneshwar
-      'GZLDEL1', 'IRDEL1', // DRC
-      'GZLGHT1', 'IRGHT1', // Guwahati
-      'GZLI2P', 'IRNPLI' // NPL
-    ];
+  // 🚀 PERFORMANCE OPTIMIZATION: For home page, use the same optimized bulk endpoint with ALL locations
+  // Dynamically generate allSource2Values from locationSource2Map
+  const allSource2Values = Object.values(locationSource2Map).flat();
     
 
     console.log('🏠 Loading home page data with optimized bulk endpoint...');
@@ -409,7 +394,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     
     // First, determine which position this source2 is in for the current location
     const currentLocationSources = this.dataIdentifier 
-      ? this.locationSource2Map[this.dataIdentifier] ?? []
+      ? locationSource2Map[this.dataIdentifier] ?? []
       : [];
     
     // Find the index of this source2 in the current location's source list

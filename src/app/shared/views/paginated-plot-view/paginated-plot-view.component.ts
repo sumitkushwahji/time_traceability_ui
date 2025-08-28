@@ -7,6 +7,7 @@ import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
 import { DataService } from '../../../services/data.service';
 import { PlatformService } from '../../../services/platform.service';
+import { locationSource2Map } from '../../location-source2.map';
 import { ActivatedRoute } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -33,15 +34,8 @@ export class PaginatedPlotViewComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  readonly locationSource2Map: { [key: string]: string[] } = {
-     npl: ['GZLI2P', 'IRNPLI'],
-    bangalore: ['GZLMB1', 'GZLMB2', 'IRLMB2', 'IRLMB1'],
-    faridabad: ['GZLMF1', 'GZLMF2', 'IRLMF1', 'IRLMF2'],
-    ahmedabad: ['GZLAHM1', 'IRLMA1', 'GZLMA2'], // Added GZLMA2 for Ahmedabad data
-    bhubaneshwar: ['GZLBBS1', 'IRLMO1', 'IRLMO2'],
-    drc: ['GZLDEL1', 'IRDEL1'],
-    guwahati: ['GZLGHT1', 'IRGHT1'],
-  };
+  // Location to source2 mapping (now imported from shared mapping)
+  readonly locationSource2Map = locationSource2Map;
 
   
   constructor(
