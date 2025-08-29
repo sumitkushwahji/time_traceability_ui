@@ -1,10 +1,10 @@
 import { CommonModule, isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, Input, ViewChild } from '@angular/core'; // Added Input and OnDestroy
-import { ChartData, ChartOptions } from 'chart.js';
+import { Component, Inject, OnInit, OnDestroy, PLATFORM_ID, Input, ViewChild } from '@angular/core';
+import { Chart, ChartData, ChartOptions } from 'chart.js';
 import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
+import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
 
-import { FormsModule } from '@angular/forms';
 import { SatData2, SatDataService } from '../../../services/sat-data.service';
 import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { FilterService } from '../../../services/filter.service';
@@ -14,54 +14,75 @@ import { FilterService } from '../../../services/filter.service';
   standalone: true,
   imports: [CommonModule, NgChartsModule, FormsModule],
   templateUrl: './plot-view.component.html',
-  styleUrl: './plot-view.component.css',
+  styleUrls: ['./plot-view.component.css'],
 })
 export class PlotViewComponent implements OnInit, OnDestroy {
-  // 'all' for dashboard-like views (aggregated data), 'specific' for city-specific views.
   @Input() dataType: 'all' | 'specific' = 'all';
-  @Input() dataIdentifier?: string; // e.g., city name if dataType is 'specific'
+  @Input() dataIdentifier?: string;
 
-  
-   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
-  
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
 
   rawData: SatData2[] = [];
   filteredData: SatData2[] = [];
   chartData: ChartData<'line'> = { labels: [], datasets: [] };
 
   dataLimits = [10, 20, 50, 100, 200, 500, -1];
-  dataLimit = -1;
+  dataLimit = 100;
+
+  startDate = '';
+  endDate = '';
 
   private destroy$ = new Subject<void>();
 
   chartOptions: ChartOptions = {
     responsive: true,
     plugins: {
-      legend: { display: true, position: 'top' },
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 15,
+        },
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          title: (ctx: any) => `Time: ${ctx[0].label}`,
+          label: (ctx: any) => ctx.raw !== null ? `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` : '',
+        },
+      },
     },
     scales: {
       x: { title: { display: true, text: 'Time (Indian Standard Time)' } },
       y: { title: { display: true, text: 'Time Difference (ns)' } },
     },
+    interaction: { mode: 'index', intersect: false },
   };
 
   isBrowser = false;
 
   constructor(
     private satDataService: SatDataService,
-    private filterService: FilterService,
+    public filterService: FilterService,  // made public
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
   ngOnInit(): void {
-    // Subscribe to filter changes
+    // default last 7 days
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    this.startDate = sevenDaysAgo.toISOString().split('T')[0];
+    this.endDate = today.toISOString().split('T')[0];
+
     this.filterService.filter$
       .pipe(takeUntil(this.destroy$))
-      .subscribe((filter) => {
-        this.applyFilter(filter);
-      });
+      .subscribe((filter) => this.applyFilter(filter));
 
     if (this.isBrowser) {
       this.fetchPlotData();
@@ -77,24 +98,14 @@ export class PlotViewComponent implements OnInit, OnDestroy {
     if (this.dataType === 'all') {
       this.satDataService.getPivotedSatDataForPlot().subscribe((data: SatData2[]) => {
         this.rawData = data;
-        this.filteredData = data;
-        
-        // Apply current filter state immediately after data loads
-        const currentFilter = this.filterService.getCurrentFilter();
-        this.applyFilter(currentFilter);
+        this.applyFilter(this.filterService.getCurrentFilter());
       });
     } else if (this.dataType === 'specific' && this.dataIdentifier) {
       this.satDataService.getPivotedSatDataForPlot(this.dataIdentifier).subscribe((data: SatData2[]) => {
         this.rawData = data;
-        this.filteredData = data;
-        
-        // Apply current filter state immediately after data loads
-        const currentFilter = this.filterService.getCurrentFilter();
-        this.applyFilter(currentFilter);
+        this.applyFilter(this.filterService.getCurrentFilter());
       });
     } else {
-      console.warn('PlotViewComponent: dataType or dataIdentifier not properly set. Defaulting to "all".');
-      // Fallback to 'all' data if inputs are not set correctly for 'specific' type
       this.dataType = 'all';
       this.fetchPlotData();
     }
@@ -103,51 +114,50 @@ export class PlotViewComponent implements OnInit, OnDestroy {
   applyFilter(filter: string): void {
     if (!this.rawData.length) return;
 
+    // Filter by satellite system
     if (filter === 'ALL') {
       this.filteredData = this.rawData;
     } else if (filter === 'GPS') {
-      // Filter for GPS satellites - need to check the locationDiffs keys for satellites starting with 'G'
-      this.filteredData = this.rawData.map(dataPoint => ({
-        ...dataPoint,
-        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'G')
-      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+      this.filteredData = this.rawData.map(d => ({
+        ...d,
+        locationDiffs: this.filterLocationDiffsBySystem(d.locationDiffs, 'G')
+      })).filter(d => Object.keys(d.locationDiffs).length > 0);
     } else if (filter === 'NAVIC') {
-      // Filter for NavIC satellites - need to check the locationDiffs keys for satellites starting with 'IR'
-      this.filteredData = this.rawData.map(dataPoint => ({
-        ...dataPoint,
-        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'IR')
-      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+      this.filteredData = this.rawData.map(d => ({
+        ...d,
+        locationDiffs: this.filterLocationDiffsBySystem(d.locationDiffs, 'IR')
+      })).filter(d => Object.keys(d.locationDiffs).length > 0);
     } else if (filter === 'GLONASS') {
-      // Filter for GLONASS satellites - need to check the locationDiffs keys for satellites starting with 'R'
-      this.filteredData = this.rawData.map(dataPoint => ({
-        ...dataPoint,
-        locationDiffs: this.filterLocationDiffsBySystem(dataPoint.locationDiffs, 'R')
-      })).filter(dataPoint => Object.keys(dataPoint.locationDiffs).length > 0);
+      this.filteredData = this.rawData.map(d => ({
+        ...d,
+        locationDiffs: this.filterLocationDiffsBySystem(d.locationDiffs, 'R')
+      })).filter(d => Object.keys(d.locationDiffs).length > 0);
     } else {
-      // For specific satellite filtering, keep original logic
       this.filteredData = this.rawData;
     }
-    
+
+    // Filter by date
+    if (this.startDate && this.endDate) {
+      const start = new Date(this.startDate).getTime();
+      const end = new Date(this.endDate).getTime();
+      this.filteredData = this.filteredData.filter(d => {
+        const time = new Date(d.mjdDateTime).getTime();
+        return time >= start && time <= end;
+      });
+    }
+
     this.updateChartData();
   }
 
-  filterLocationDiffsBySystem(locationDiffs: { [key: string]: number }, systemPrefix: string): { [key: string]: number } {
+  filterLocationDiffsBySystem(locationDiffs: { [key: string]: number }, systemPrefix: string) {
     const filtered: { [key: string]: number } = {};
-    
-    Object.keys(locationDiffs).forEach(satKey => {
+    Object.keys(locationDiffs).forEach(key => {
       if (systemPrefix === 'IR') {
-        // For NavIC, check if satellite starts with 'IR'
-        if (satKey.toUpperCase().startsWith('IR')) {
-          filtered[satKey] = locationDiffs[satKey];
-        }
+        if (key.toUpperCase().startsWith('IR')) filtered[key] = locationDiffs[key];
       } else {
-        // For GPS ('G') and GLONASS ('R'), check first character
-        if (satKey.toUpperCase().startsWith(systemPrefix)) {
-          filtered[satKey] = locationDiffs[satKey];
-        }
+        if (key.toUpperCase().startsWith(systemPrefix)) filtered[key] = locationDiffs[key];
       }
     });
-    
     return filtered;
   }
 
@@ -162,42 +172,21 @@ export class PlotViewComponent implements OnInit, OnDestroy {
 
   buildDatasets(data: SatData2[]) {
     const allLocations = new Set<string>();
-    data.forEach(d => {
-      Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc));
-    });
+    data.forEach(d => Object.keys(d.locationDiffs).forEach(loc => allLocations.add(loc)));
 
-    // 🎨 CONSISTENT COLOR SCHEME: Use same position-based colors as other components
-    const consistentColors = [
-      '#3B82F6', // Blue - First data series in all locations
-      '#EF4444', // Red - Second data series in all locations  
-      '#10B981', // Green - Third data series in all locations
-      '#F59E0B', // Amber - Fourth data series in all locations
-      '#8B5CF6', // Purple - Fifth data series in all locations
-      '#EC4899', // Pink - Sixth data series in all locations
-      '#6B7280', // Gray - Seventh data series in all locations
-      '#14B8A6', // Teal - Eighth data series in all locations
-      '#F97316', // Orange - Ninth data series in all locations
-      '#06B6D4', // Sky Blue - Tenth data series in all locations
-      '#84CC16', // Lime - Eleventh data series in all locations
-      '#A855F7', // Violet - Twelfth data series in all locations
-      '#E11D48', // Rose - Thirteenth data series in all locations
-      '#0891B2', // Cyan - Fourteenth data series in all locations
-      '#65A30D', // Green-600 - Fifteenth data series in all locations
+    const colors = [
+      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+      '#EC4899', '#6B7280', '#14B8A6', '#F97316', '#06B6D4',
+      '#84CC16', '#A855F7', '#E11D48', '#0891B2', '#65A30D',
     ];
 
     return Array.from(allLocations).map((loc, index) => {
-      // Use consistent color based on position, fallback to random if we exceed defined colors
-      const color = index < consistentColors.length 
-        ? consistentColors[index] 
-        : this.getRandomColor();
-
-      console.log(`🎨 Plot View: Assigning color for location ${loc} at position ${index}: ${color}`);
-
+      const color = colors[index % colors.length];
       return {
-          label: getReceiverDisplayName(loc),
+        label: getReceiverDisplayName(loc),
         data: data.map(d => d.locationDiffs[loc] ?? null),
         borderColor: color,
-        backgroundColor: color,
+        backgroundColor: color + '33',
         pointBorderColor: color,
         pointBackgroundColor: color,
         pointRadius: 4,
@@ -208,56 +197,22 @@ export class PlotViewComponent implements OnInit, OnDestroy {
     });
   }
 
-  getRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  }
-
-   public downloadPlot(): void {
-    if (!this.chart || !this.chart.chart) {
-      console.error('Chart instance not found.');
-      return;
-    }
-
-    // Get the chart canvas
-    const chartCanvas = this.chart.chart.canvas as HTMLCanvasElement;
-    if (!chartCanvas) {
-      console.error('Chart canvas not found.');
-      return;
-    }
-
-    // Create a temporary canvas with white background
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = chartCanvas.width;
-    tempCanvas.height = chartCanvas.height;
-    const ctx = tempCanvas.getContext('2d');
-    if (!ctx) {
-      console.error('Failed to get temp canvas context.');
-      return;
-    }
-    // Fill with white background
+  downloadPlot(): void {
+    if (!this.chart || !this.chart.chart) return;
+    const canvas = this.chart.chart.canvas as HTMLCanvasElement;
+    const temp = document.createElement('canvas');
+    temp.width = canvas.width;
+    temp.height = canvas.height;
+    const ctx = temp.getContext('2d');
+    if (!ctx) return;
     ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    // Draw the chart on top
-    ctx.drawImage(chartCanvas, 0, 0);
-
-    // Get the base64 image data from the temp canvas
-    const base64Image = tempCanvas.toDataURL('image/png');
-
-    // Create a temporary link element
+    ctx.fillRect(0, 0, temp.width, temp.height);
+    ctx.drawImage(canvas, 0, 0);
     const link = document.createElement('a');
-    link.href = base64Image;
-    link.download = `common-view-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
-
-    // Append the link to the body, click it, and then remove it
+    link.href = temp.toDataURL('image/png');
+    link.download = `plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    console.log('✅ Plot download initiated with white background.');
   }
 }

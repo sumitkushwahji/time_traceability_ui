@@ -10,18 +10,29 @@
     </button>
   </div>
 
-  <div class="mb-4">
-    <label for="dataLimit" class="mr-2 font-medium">Show last:</label>
-    <select id="dataLimit"
-            [(ngModel)]="dataLimit"
-            (change)="updateChartData()"
-            class="border px-2 py-1">
-      <option *ngFor="let limit of dataLimits" [value]="limit">
-        {{ limit === -1 ? 'All' : limit }}
-      </option>
-    </select>
+  <!-- Show Last + Date Filters in same line -->
+  <div class="flex flex-wrap items-center gap-4 mb-4">
+    <div class="flex items-center gap-2">
+      <label>Show last:</label>
+      <select [(ngModel)]="dataLimit" (change)="updateChartData()" class="border px-2 py-1">
+        <option *ngFor="let limit of dataLimits" [value]="limit">
+          {{ limit === -1 ? 'All' : limit }}
+        </option>
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <label>Start Date:</label>
+      <input type="date" [(ngModel)]="startDate" (change)="applyFilter(filterService.getCurrentFilter())" class="border px-2 py-1">
+    </div>
+
+    <div class="flex items-center gap-2">
+      <label>End Date:</label>
+      <input type="date" [(ngModel)]="endDate" (change)="applyFilter(filterService.getCurrentFilter())" class="border px-2 py-1">
+    </div>
   </div>
 
+  <!-- Chart -->
   <ng-container *ngIf="isBrowser; else ssrFallback">
     <canvas baseChart
             [data]="chartData"
@@ -33,4 +44,9 @@
   <ng-template #ssrFallback>
     <p class="text-gray-500 italic">Chart is not available during server-side rendering.</p>
   </ng-template>
+
+  <!-- No Data Message -->
+  <div *ngIf="!filteredData || filteredData.length === 0" class="text-gray-500 mt-4">
+    No data available for selected filter/date
+  </div>
 </div>
