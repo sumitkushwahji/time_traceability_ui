@@ -17,6 +17,7 @@ import {
   RecentFileUpload,
   FileWithErrors
 } from '../../services/file-upload-stats.service';
+import { getReceiverDisplayName } from '../../shared/receiver-display-name.map';
 import { ExportService } from '../../services/export.service';
 
 @Component({
@@ -36,61 +37,47 @@ export class FileUploadDashboardComponent implements OnInit, OnDestroy {
     'bhubaneshwar': 'Bhubaneshwar (BHU)',
     'guwahati': 'Guwahati (GUW)',
     'drc': 'DRC (DRC)',
-    'delhi': 'Delhi (DEL)',
-    'mumbai': 'Mumbai (MUM)',
-    'kolkata': 'Kolkata (KOL)',
-    'chennai': 'Chennai (CHN)',
-    'hyderabad': 'Hyderabad (HYD)',
-    'pune': 'Pune (PUN)'
   };
 
   // Source code to satellite system mapping
   private readonly sourceCodeToSatelliteMap: { [key: string]: string } = {
     // GPS receivers
-    'GZLI2P': 'GPS',
-    'GZLMB1': 'GPS', 
-    'GZLMB2': 'GPS',
-    'GZLMA2': 'GPS',
-    'GZLMF1': 'GPS',
-    'GZLMF2': 'GPS',
-    'GZLGU1': 'GPS',
-    'GZLBH1': 'GPS',
+
+  'GZLI2P': 'GPS',
+  'GZLMB1': 'GPS',
+  'GZLMB2': 'GPS',
+  'GZLMA1': 'GPS',
+  'GZLMA2': 'GPS',
+  'GZLMF1': 'GPS',
+  'GZLMF2': 'GPS',
+  'GZLMO1': 'GPS',
+  'GZLMO2': 'GPS',
+  'GZLMG1': 'GPS',
+  'GZLMG2': 'GPS',
+  'GZDRC1': 'GPS',
+  'GZDRC2': 'GPS',
     
     // NAVIC receivers  
-    'IRNPLI': 'NAVIC',
-    'IRLMB1': 'NAVIC',
-    'IRLMB2': 'NAVIC',
-    'IRAHM1': 'NAVIC',
-    'IRACCO': 'NAVIC',
-    'IRGU1': 'NAVIC',
-    'IRBH1': 'NAVIC',
-    
+   
+  'IRNPLI': 'NAVIC',
+  'IRLMB1': 'NAVIC',
+  'IRLMB2': 'NAVIC',
+  'IRLMA1': 'NAVIC',
+  'IRLMA2': 'NAVIC',
+  'IRLMF1': 'NAVIC',
+  'IRLMF2': 'NAVIC',
+  'IRLMO1': 'NAVIC',
+  'IRLMO2': 'NAVIC',
+  'IRLMG1': 'NAVIC',
+  'IRLMG2': 'NAVIC',
+  'IRDRC1': 'NAVIC',
+  'IRDRC2': 'NAVIC',
     // Multi-constellation receivers
     'MULTI1': 'GPS+NAVIC',
     'MULTI2': 'GPS+NAVIC+GLO'
   };
 
-  // Source code to display name mapping
-  private readonly sourceCodeToDisplayNameMap: { [key: string]: string } = {
-    // GPS receivers (GZL prefix)
-    'GZLI2P': 'NPLI_GPS',
-    'GZLMB1': 'BLR_TS1',
-    'GZLMB2': 'BLR_TS2', 
-    'GZLMA2': 'AHM_TS1',
-    'GZLMF1': 'FRD_TS1',
-    'GZLMF2': 'FRD_TS2',
-    'GZLGU1': 'GUW_TS1',
-    'GZLBH1': 'BHU_TS1',
-    
-    // NAVIC receivers (IR prefix)
-    'IRNPLI': 'NPLI_NAVIC',
-    'IRLMB1': 'BLR_TS1',
-    'IRLMB2': 'BLR_TS2',
-    'IRAHM1': 'AHM_TS1', 
-    'IRACCO': 'FRD_TS1',
-    'IRGU1': 'GUW_TS1',
-    'IRBH1': 'BHU_TS1'
-  };
+  // ...existing code...
   
   // Data properties
   statsData: FileUploadStatsDTO | null = null;
@@ -311,7 +298,7 @@ export class FileUploadDashboardComponent implements OnInit, OnDestroy {
   }
 
   getSourceCodeDisplayName(sourceCode: string): string {
-    return this.sourceCodeToDisplayNameMap[sourceCode] || sourceCode;
+    return getReceiverDisplayName(sourceCode);
   }
 
   getLocationDisplayWithSatellite(locationName: string, sourceCode: string): string {
