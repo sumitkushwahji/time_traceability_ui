@@ -30,14 +30,31 @@ export class PlotViewComponent implements OnInit, OnDestroy {
   chartData: ChartData<'line'> = { labels: [], datasets: [] };
 
   dataLimits = [10, 20, 50, 100, 200, 500, -1];
-  dataLimit = -1;
+  // dataLimit = -1;
+  dataLimit = 100;
 
   private destroy$ = new Subject<void>();
 
   chartOptions: ChartOptions = {
     responsive: true,
     plugins: {
-      legend: { display: true, position: 'top' },
+      legend: {
+        display: true,
+        position: 'top',
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 15,
+        },
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          title: (ctx: any) => `Time: ${ctx[0].label}`,
+          label: (ctx: any) => ctx.raw !== null ? `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` : '',
+        },
+      },
     },
     scales: {
       x: { title: { display: true, text: 'Time (Indian Standard Time)' } },

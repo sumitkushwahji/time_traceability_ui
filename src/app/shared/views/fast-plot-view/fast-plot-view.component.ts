@@ -44,7 +44,8 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   chartOptions: any;
   
   // Data display limits - default to all data to show complete dataset
-  dataLimit = -1;
+  // dataLimit = -1;
+  dataLimit = 100;
   dataLimits = [25, 50, 100, 200, -1]; // -1 means all data
   
   // Filtering
@@ -328,36 +329,15 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'top' as const,
-          display: true,
-        },
-        title: {
-          display: true,
-          text: this.getPlotTitle(),
-          font: {
-            size: 16,
-            weight: 'bold'
-          },
-          padding: {
-            top: 10,
-            bottom: 20
-          }
-        },
+        legend: { position: 'top', labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 15 } },
         tooltip: {
-          mode: 'index' as const,
+          mode: 'index',
           intersect: false,
           callbacks: {
-            title: (context: any) => {
-              return `Time: ${context[0].label}`;
-            },
-            label: (context: any) => {
-              const value = context.raw;
-              if (value === null) return '';
-              return `${context.dataset.label}: ${Number(value).toFixed(2)}`;
-            }
+            title: (ctx: any) => `Time: ${ctx[0].label}`,
+            label: (ctx: any) => ctx.raw !== null ? `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` : ''
           }
-        },
+        }
       },
       scales: {
         x: {
