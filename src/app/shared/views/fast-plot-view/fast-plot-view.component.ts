@@ -4,7 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BaseChartDirective, NgChartsModule } from 'ng2-charts';
 import { ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, combineLatest, switchMap, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { SatDataService } from '../../../services/sat-data.service';
 import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
@@ -34,7 +35,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   // Raw data from API (cached)
   allData: SatData[] = [];
 
-   @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   
   // Filtered data for charts
   filteredData: SatData[] = [];
@@ -43,15 +44,12 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   chartData: any;
   chartOptions: any;
   
-  // Data display limits - default to all data to show complete dataset
-  // dataLimit = -1;
+  // Data display limits
   dataLimit = 100;
   dataLimits = [25, 50, 100, 200, -1]; // -1 means all data
   
   // Filtering
   selectedFilter = 'NAVIC'; // Default to NAVIC instead of ALL
-  startDate = '';
-  endDate = '';
   
   // UI state
   loading = false;
@@ -62,11 +60,6 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   // Route parameters
   dataIdentifier?: string;
   
-  // Location configuration (same as FastDataViewComponent)
-  // Now imported from shared/location-source2.map.ts
-
-
-  // Location name to abbreviation mapping for plot titles
   private readonly locationAbbreviationMap: { [key: string]: string } = {
     npl: 'NPL',
     bangalore: 'BLR',
@@ -85,29 +78,63 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    this.loading = true;
-    
-    // Get dataIdentifier from route data (same as FastDataViewComponent)
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
+    this.setupDataPipeline();
+  }
 
-    // Subscribe to filter changes
-    this.filterService.filter$.pipe(takeUntil(this.destroy$)).subscribe((filter: string) => {
-      this.selectedFilter = filter;
-      this.applyFilters();
-      this.updateChartData();
+  private setupDataPipeline(): void {
+    this.loading = true;
+
+    combineLatest([
+      this.filterService.filter$,
+      this.dateRangeService.dateRange$
+    ]).pipe(
+      takeUntil(this.destroy$),
+      switchMap(([filter, dateRange]) => {
+        this.loading = true;
+        this.selectedFilter = filter;
+        
+        const source2Codes = this.dataIdentifier 
+          ? locationSource2Map[this.dataIdentifier] ?? null 
+          : null;
+
+        if (source2Codes) {
+          return this.satDataService.getBulkLocationData(source2Codes, dateRange.start, dateRange.end).pipe(
+            catchError(error => {
+              console.error('Error loading bulk location data, falling back to home page logic:', error);
+              return this.loadFallbackData(dateRange.start, dateRange.end);
+            })
+          );
+        } else {
+          return this.loadFallbackData(dateRange.start, dateRange.end);
+        }
+      })
+    ).subscribe({
+      next: (response) => {
+        this.allData = response.data;
+        console.log(`✅ Plot data pipeline loaded ${this.allData.length} records (cached: ${response.cached})`);
+        this.applyFilters();
+        this.updateChartData();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('❌ Final fallback in plot data pipeline failed:', error);
+        this.allData = [];
+        this.applyFilters();
+        this.updateChartData();
+        this.loading = false;
+      }
     });
+  }
 
-    // Subscribe to date range changes
-    this.dateRangeService.dateRange$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((range) => {
-        this.startDate = range.start;
-        this.endDate = range.end;
-        this.loadData(); // Reload data when date range changes
-      });
-    
-    // Load initial data
-    this.loadData();
+  private loadFallbackData(startDate: string, endDate: string) {
+    const allSource2Values = Object.values(locationSource2Map).flat();
+    return this.satDataService.getBulkLocationData(allSource2Values, startDate, endDate).pipe(
+      catchError(error => {
+        console.error('❌ Error loading optimized home page plot data:', error);
+        return of({ data: [], cached: false }); // Return empty on failure
+      })
+    );
   }
 
   ngOnDestroy(): void {
@@ -115,166 +142,32 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadData(): void {
-    this.loading = true;
-    
-    const source2Codes = this.dataIdentifier 
-      ? locationSource2Map[this.dataIdentifier] ?? null 
-      : null;
-
-    if (source2Codes) {
-      // 🚀 Use new optimized bulk endpoint for location-specific data (same as FastDataViewComponent)
-      this.satDataService.getBulkLocationData(
-        source2Codes,
-        this.startDate,
-        this.endDate
-      ).subscribe({
-        next: (response: { data: SatData[]; totalElements: number; cached: boolean }) => {
-          console.log(`🔄 Loaded ${response.data.length} total records for plot view (cached: ${response.cached})`);
-          this.allData = response.data;
-          
-          // Debug: Log unique satellite letters
-          const uniqueSatLetters = [...new Set(this.allData.map(item => item.satLetter))];
-          console.log('Plot view - Unique satellite letters available:', uniqueSatLetters);
-          
-          // Debug: Count by satellite system
-          const navicCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'NAVIC').length;
-          const gpsCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GPS').length;
-          const glonassCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GLONASS').length;
-          
-          console.log(`Plot view - Satellite counts - NAVIC: ${navicCount}, GPS: ${gpsCount}, GLONASS: ${glonassCount}`);
-          
-          this.applyFilters();
-          this.updateChartData();
-          this.loading = false;
-        },
-        error: (error: any) => {
-          console.error('❌ Error loading location-specific data for plot:', error);
-          this.loadDataFallback();
-        }
-      });
-    } else {
-      // For non-location specific data (home page), use fallback
-      this.loadDataFallback();
-    }
-  }
-
-  private loadDataFallback(): void {
-  // 🚀 PERFORMANCE OPTIMIZATION: For home page, use the same optimized bulk endpoint with ALL locations
-  // Dynamically generate allSource2Values from locationSource2Map
-  const allSource2Values = Object.values(locationSource2Map).flat();
-    
-
-    console.log('🏠 Loading home page data with optimized bulk endpoint...');
-    const startTime = performance.now();
-
-    this.satDataService.getBulkLocationData(allSource2Values, this.startDate, this.endDate).subscribe({
-      next: (response: { data: SatData[]; totalElements: number; cached: boolean }) => {
-        const endTime = performance.now();
-        const loadTime = (endTime - startTime).toFixed(2);
-        
-        console.log(`🏠 Home page loaded ${response.data.length} total records in ${loadTime}ms (cached: ${response.cached})`);
-        this.allData = response.data;
-        
-        // Debug: Performance comparison info
-        console.log(`⚡ Performance: ${loadTime}ms vs previous method`);
-        
-        this.applyFilters();
-        this.updateChartData();
-        this.loading = false;
-      },
-      error: (error: any) => {
-        console.error('❌ Error loading optimized home page data:', error);
-        console.log('🔄 Falling back to individual location requests...');
-        this.loadDataLegacyFallback();
-      }
-    });
-  }
-
-  private loadDataLegacyFallback(): void {
-    // Legacy fallback method - only use if the optimized method fails
-    console.log('⚠️  Using legacy fallback method...');
-    
-    // Could implement a fallback using the old getSatData method if needed
-    this.loading = false;
-    console.error('Unable to load data - please check backend connection');
-  }
-
   private applyFilters(): void {
     let filtered = [...this.allData];
 
-    console.log(`📊 Starting with ${filtered.length} total records`);
-
-    // Apply satellite filter
     if (this.selectedFilter && this.selectedFilter !== 'ALL') {
-      const beforeCount = filtered.length;
-      // Fixed NAVIC filtering - exact match instead of startsWith
       if (this.selectedFilter === 'NAVIC') {
         filtered = filtered.filter(item => item.satLetter === 'NAVIC');
       } else {
         filtered = filtered.filter(item => item.satLetter === this.selectedFilter);
       }
-      console.log(`🛰️  Satellite filter (${this.selectedFilter}): ${beforeCount} → ${filtered.length} records`);
     }
-
-    // Apply date range filter
-    if (this.startDate && this.endDate) {
-      const beforeCount = filtered.length;
-      const start = new Date(this.startDate).getTime();
-      const end = new Date(this.endDate).getTime();
-      filtered = filtered.filter(item => {
-        const itemDate = new Date(item.mjdDateTime).getTime();
-        return itemDate >= start && itemDate <= end;
-      });
-      console.log(`📅 Date filter: ${beforeCount} → ${filtered.length} records`);
-    }
-
-    // Note: Location filtering is already done at the API level using source2Codes
-    // No need for additional location filtering here
-
-    // Debug: Show unique satellite letters in filtered data
-    const uniqueSatLetters = [...new Set(filtered.map(item => item.satLetter))];
-    console.log('🛰️  Unique satellite letters available:', uniqueSatLetters);
-
-    // Debug: Show unique source2 values in filtered data
-    const uniqueSource2 = [...new Set(filtered.map(item => item.source2))];
-    console.log('📍 Unique source2 values available:', uniqueSource2);
-
-    // Debug: Count by satellite type
-    const satelliteCounts = uniqueSatLetters.map(satLetter => ({
-      satLetter,
-      count: filtered.filter(item => item.satLetter === satLetter).length
-    }));
-    console.log('📊 Satellite counts:', satelliteCounts);
-
+    
     this.filteredData = filtered;
   }
 
   private updateChartData(): void {
     if (!this.filteredData || this.filteredData.length === 0) {
-      console.log('⚠️  No data available for chart');
       this.chartData = { labels: [], datasets: [] };
       return;
     }
 
-    // Sort by time for proper plot ordering
     const sortedData = [...this.filteredData].sort((a, b) => 
       new Date(a.mjdDateTime).getTime() - new Date(b.mjdDateTime).getTime()
     );
 
-    // Apply data limit - take last N points to show latest data on right side
     const sliced = this.dataLimit === -1 ? sortedData : sortedData.slice(-this.dataLimit);
 
-    console.log(`📈 Plot View preparing chart with ${sliced.length} data points (limit: ${this.dataLimit}, showing ${this.dataLimit === -1 ? 'ALL' : 'LAST ' + this.dataLimit} data)`);
-
-    // Debug: Log time range of displayed data
-    if (sliced.length > 0) {
-      const firstTime = new Date(sliced[0].mjdDateTime).toISOString();
-      const lastTime = new Date(sliced[sliced.length - 1].mjdDateTime).toISOString();
-      console.log(`⏰ Plot View time range: ${firstTime} to ${lastTime}`);
-    }
-
-    // Group by source2 for plotting separate lines per location
     const source2Groups: { [key: string]: SatData[] } = {};
     sliced.forEach(item => {
       if (!source2Groups[item.source2]) {
@@ -283,44 +176,29 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       source2Groups[item.source2].push(item);
     });
 
-    console.log('📊 Plot data grouped by source2:', Object.keys(source2Groups));
-    console.log('📊 Data counts per source2:', Object.keys(source2Groups).map(key => ({
-      source2: key,
-      count: source2Groups[key].length,
-      satellites: [...new Set(source2Groups[key].map(item => item.satLetter))]
-    })));
-
-    // Create labels using IST datetime format like Link Stability
     this.chartData = {
-      labels: sliced.map(d => new Date(d.mjdDateTime).toLocaleString()), // Using IST datetime format
+      labels: sliced.map(d => new Date(d.mjdDateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })),
       datasets: Object.keys(source2Groups).map(source2 => {
         const source2Data = source2Groups[source2];
         const color = this.getColorForSource2(source2);
         
-        // Create data array aligned with labels
         const dataPoints = sliced.map(labelItem => {
-          const matchingPoint = source2Data.find(dataItem => 
-            dataItem.sttime === labelItem.sttime && 
-            dataItem.mjd === labelItem.mjd &&
-            dataItem.source2 === source2
-          );
+          const matchingPoint = source2Data.find(dataItem => dataItem.mjdDateTime === labelItem.mjdDateTime);
           return matchingPoint ? matchingPoint.avgRefsysDifference : null;
         });
-
-        console.log(`📈 Dataset for ${source2}: ${dataPoints.filter(p => p !== null).length} non-null points`);
 
         return {
           label: getReceiverDisplayName(source2),
           data: dataPoints,
           borderColor: color,
-          backgroundColor: color + '20', // Add transparency
+          backgroundColor: color + '20',
           pointBorderColor: color,
           pointBackgroundColor: color,
           pointRadius: 3,
           pointHoverRadius: 5,
           fill: false,
           tension: 0.3,
-          spanGaps: true, // Connect points even if some are null
+          spanGaps: true,
         };
       })
     };
@@ -335,7 +213,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
           intersect: false,
           callbacks: {
             title: (ctx: any) => `Time: ${ctx[0].label}`,
-            label: (ctx: any) => ctx.raw !== null ? `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)}` : ''
+            label: (ctx: any) => ctx.raw !== null ? `${ctx.dataset.label}: ${Number(ctx.raw).toFixed(2)} ns` : ''
           }
         }
       },
@@ -363,64 +241,36 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
         intersect: false,
       },
     };
-
-    console.log(`✅ Chart updated with ${this.chartData.datasets.length} datasets`);
   }
 
   private getColorForSource2(source2: string): string {
-    // 🎨 CONSISTENT COLOR SCHEME: Same color order for all locations
-    // This ensures first dataset in each location gets the same color, 
-    // second dataset gets the same second color, etc.
-    
-    // First, determine which position this source2 is in for the current location
     const currentLocationSources = this.dataIdentifier 
       ? locationSource2Map[this.dataIdentifier] ?? []
       : [];
     
-    // Find the index of this source2 in the current location's source list
     const sourceIndex = currentLocationSources.indexOf(source2);
     
-    // Define consistent colors for positions (1st, 2nd, 3rd, etc. data series)
     const consistentColors = [
-      '#3B82F6', // Blue - First data series in all locations
-      '#EF4444', // Red - Second data series in all locations  
-      '#10B981', // Green - Third data series in all locations
-      '#F59E0B', // Amber - Fourth data series in all locations
-      '#8B5CF6', // Purple - Fifth data series in all locations
-      '#EC4899', // Pink - Sixth data series in all locations
-      '#6B7280', // Gray - Seventh data series in all locations
-      '#14B8A6', // Teal - Eighth data series in all locations
-      '#F97316', // Orange - Ninth data series in all locations
-      '#06B6D4', // Sky Blue - Tenth data series in all locations
-      '#84CC16', // Lime - Eleventh data series in all locations
-      '#A855F7', // Violet - Twelfth data series in all locations
-      '#E11D48', // Rose - Thirteenth data series in all locations
-      '#0891B2', // Cyan - Fourteenth data series in all locations
-      '#65A30D', // Green-600 - Fifteenth data series in all locations
+      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280', 
+      '#14B8A6', '#F97316', '#06B6D4', '#84CC16', '#A855F7', '#E11D48', '#0891B2', '#65A30D'
     ];
     
-    // If we found the source in the current location's list, use position-based color
     if (sourceIndex !== -1 && sourceIndex < consistentColors.length) {
-      console.log(`🎨 Assigning color for ${source2} at position ${sourceIndex}: ${consistentColors[sourceIndex]}`);
       return consistentColors[sourceIndex];
     }
     
-    // Fallback: Generate consistent color based on source2 name for unknown codes
     let hash = 0;
     for (let i = 0; i < source2.length; i++) {
       hash = source2.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = Math.abs(hash) % 360;
-    console.log(`⚠️  Using generated color for unknown source: ${source2} - hsl(${hue}, 70%, 50%)`);
     return `hsl(${hue}, 70%, 50%)`;
   }
 
-  private getPlotTitle(): string {
+  public getPlotTitle(): string {
     if (!this.dataIdentifier) {
       return 'Common-View Time Transfer Performance';
     }
-
-    // Get location abbreviation for title
     const locationAbbr = this.locationAbbreviationMap[this.dataIdentifier] || this.dataIdentifier.toUpperCase();
     const locationName = this.dataIdentifier.charAt(0).toUpperCase() + this.dataIdentifier.slice(1);
     
@@ -428,72 +278,33 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   }
 
   onDataLimitChange(): void {
-    console.log(`📊 Data limit changed to: ${this.dataLimit}`);
     this.updateChartData();
   }
 
   getStatistics(field: 'avg1' | 'avg2' | 'avgRefsysDifference'): { min: number; max: number; avg: number } {
-    if (this.filteredData.length === 0) {
-      return { min: 0, max: 0, avg: 0 };
-    }
-
+    if (this.filteredData.length === 0) return { min: 0, max: 0, avg: 0 };
     const values = this.filteredData.map(item => item[field]).filter(val => !isNaN(val));
-    if (values.length === 0) {
-      return { min: 0, max: 0, avg: 0 };
-    }
-
+    if (values.length === 0) return { min: 0, max: 0, avg: 0 };
     const min = Math.min(...values);
     const max = Math.max(...values);
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
-
-    return { 
-      min: Number(min.toFixed(2)), 
-      max: Number(max.toFixed(2)), 
-      avg: Number(avg.toFixed(2)) 
-    };
+    return { min: Number(min.toFixed(2)), max: Number(max.toFixed(2)), avg: Number(avg.toFixed(2)) };
   }
 
-   public downloadPlot(): void {
-    if (!this.chart || !this.chart.chart) {
-      console.error('Chart instance not found.');
-      return;
-    }
-
-    // Get the chart canvas
-    const chartCanvas = this.chart.chart.canvas as HTMLCanvasElement;
-    if (!chartCanvas) {
-      console.error('Chart canvas not found.');
-      return;
-    }
-
-    // Create a temporary canvas with white background
+  public downloadPlot(): void {
+    if (!this.chart?.chart) return;
+    const chartCanvas = this.chart.chart.canvas;
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = chartCanvas.width;
     tempCanvas.height = chartCanvas.height;
     const ctx = tempCanvas.getContext('2d');
-    if (!ctx) {
-      console.error('Failed to get temp canvas context.');
-      return;
-    }
-    // Fill with white background
+    if (!ctx) return;
     ctx.fillStyle = '#fff';
     ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    // Draw the chart on top
     ctx.drawImage(chartCanvas, 0, 0);
-
-    // Get the base64 image data from the temp canvas
-    const base64Image = tempCanvas.toDataURL('image/png');
-
-    // Create a temporary link element
     const link = document.createElement('a');
-    link.href = base64Image;
+    link.href = tempCanvas.toDataURL('image/png');
     link.download = `common-view-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
-
-    // Append the link to the body, click it, and then remove it
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
-    console.log('✅ Plot download initiated with white background.');
   }
 }

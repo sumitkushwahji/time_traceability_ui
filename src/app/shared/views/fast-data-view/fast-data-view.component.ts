@@ -62,6 +62,9 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   
   // Location configuration
   dataIdentifier?: string;
+
+  // FIX: Flag to prevent applyFilters from running before initial data is loaded
+  private initialDataLoaded = false;
   
   private destroy$ = new Subject<void>();
 
@@ -81,7 +84,11 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((filter) => {
         this.selectedFilter = filter;
-        this.applyFilters();
+        // FIX: Only call applyFilters if the initial data has already been loaded.
+        // This prevents the race condition on component initialization.
+        if (this.initialDataLoaded) {
+            this.applyFilters();
+        }
       });
     
     // Subscribe to date range changes
@@ -93,8 +100,7 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
         this.loadData(); // Reload data when date range changes
       });
     
-    // Initial data load
-    this.loadData();
+    // Initial data load is triggered by the dateRangeService subscription firing immediately
   }
 
   ngOnDestroy(): void {
@@ -120,17 +126,17 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
           this.allData = response.data;
           console.log(`✅ Loaded ${this.allData.length} records from optimized bulk endpoint (cached: ${response.cached})`);
           
-          // Debug: Log unique satellite letters
           const uniqueSatLetters = [...new Set(this.allData.map(item => item.satLetter))];
           console.log('Unique satellite letters available:', uniqueSatLetters);
           
-          // Debug: Count by satellite system
           const navicCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'NAVIC').length;
           const gpsCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GPS').length;
           const glonassCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GLONASS').length;
           
           console.log('Satellite counts - NAVIC:', navicCount, 'GPS:', gpsCount, 'GLONASS:', glonassCount);
           
+          // FIX: Set the flag to true after the first data load succeeds
+          this.initialDataLoaded = true;
           this.applyFilters();
           this.loading = false;
         },
@@ -146,11 +152,7 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   }
 
   private loadDataFallback(): void {
-  // 🚀 PERFORMANCE OPTIMIZATION: For home page, use the same optimized bulk endpoint with ALL locations
-  // Dynamically generate allSource2Values from locationSource2Map
-  const allSource2Values = Object.values(locationSource2Map).flat();
-    
-
+    const allSource2Values = Object.values(locationSource2Map).flat();
     console.log('🏠 Loading home page data for data view with optimized bulk endpoint...');
     const startTime = performance.now();
 
@@ -162,9 +164,10 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
         console.log(`🏠 Home page data view loaded ${response.data.length} total records in ${loadTime}ms (cached: ${response.cached})`);
         this.allData = response.data;
         
-        // Debug: Performance comparison info
         console.log(`⚡ Data view performance: ${loadTime}ms vs previous method`);
         
+        // FIX: Set the flag to true after the first data load succeeds
+        this.initialDataLoaded = true;
         this.applyFilters();
         this.loading = false;
       },
@@ -176,24 +179,25 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   }
 
   private loadDataLegacyFallback(): void {
-    // Legacy fallback method - only use if the optimized method fails
     console.log('⚠️  Using legacy data view fallback method...');
-    
-    const pageSize = 1000; // Large page size to get most data
+    const pageSize = 1000;
     
     this.satDataService.getSatData(
-      0, // page 0
+      0, 
       pageSize,
       'mjd',
       'asc',
-      '', // no search filter at API level
+      '',
       this.startDate,
       this.endDate,
-      null // no satLetter filter at API level
+      null
     ).subscribe({
       next: (response) => {
         this.allData = response.content;
         console.log(`⚠️  Legacy fallback loaded ${this.allData.length} records`);
+        
+        // FIX: Set the flag to true after the first data load succeeds
+        this.initialDataLoaded = true;
         this.applyFilters();
         this.loading = false;
       },
@@ -207,7 +211,6 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   applyFilters(): void {
     let filtered = [...this.allData];
     
-    // Apply search filter
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase().trim();
       filtered = filtered.filter(item =>
@@ -219,24 +222,13 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
       );
     }
     
-    // Apply satellite system filter
     if (this.selectedFilter === 'GPS') {
       filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'GPS');
     } else if (this.selectedFilter === 'NAVIC') {
-      // NAVIC satellites are labeled exactly as 'NAVIC' in the database
       filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'NAVIC');
-      
-      // Debug logging to understand NAVIC data
       console.log('NAVIC Filter Applied:');
       console.log('Total items before filter:', this.allData.length);
       console.log('Items after NAVIC filter:', filtered.length);
-      if (filtered.length > 0) {
-        const uniqueSatLetters = [...new Set(filtered.map(item => item.satLetter))];
-        console.log('NAVIC satellite letters found:', uniqueSatLetters);
-      } else {
-        const allSatLetters = [...new Set(this.allData.map(item => item.satLetter))];
-        console.log('All available satellite letters:', allSatLetters);
-      }
     } else if (this.selectedFilter === 'GLONASS') {
       filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'GLONASS');
     }
@@ -250,7 +242,6 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   applySortingAndPagination(): void {
     let sorted = [...this.filteredData];
     
-    // Apply sorting
     sorted.sort((a, b) => {
       const aValue = a[this.sortColumn as keyof SatData];
       const bValue = b[this.sortColumn as keyof SatData];
@@ -262,7 +253,6 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
       return this.sortDirection === 'asc' ? comparison : -comparison;
     });
     
-    // Apply pagination
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.displayedData = sorted.slice(startIndex, endIndex);
