@@ -78,14 +78,35 @@
       </div>
 
 
+      <!-- MDEV Analysis Section -->
+      <div *ngIf="showTdevAnalysis" class="mt-6 p-4 border-t">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">Modified Allan Deviation (MDEV) Analysis</h3>
+          
+            <button 
+              (click)="downloadMdevCSV()"
+              class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm mr-2">
+              Download MDEV in CSV
+            </button>
+            <button (click)="downloadMdevPlot()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Download MDEV Plot</button>
+          
+        </div>
+        <div *ngIf="mdevChartData && mdevChartData.datasets && mdevChartData.datasets.length > 0 && isBrowser" class="h-96">
+            <canvas #mdevChartCanvas baseChart [data]="mdevChartData" [options]="mdevChartOptions" [type]="'line'"></canvas>
+        </div>
+        <div *ngIf="!mdevChartData || !mdevChartData.datasets || mdevChartData.datasets.length === 0" class="text-center py-12 text-gray-500">
+          <p>MDEV analysis could not be completed for the current selection.</p>
+        </div>
+      </div>
       <!-- TDEV Analysis Section -->
       <div *ngIf="showTdevAnalysis" class="mt-6 p-4 border-t">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold">Time Deviation (TDEV) Analysis</h3>
+          
           <button 
             (click)="downloadTdevCSV()"
             class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm mr-2">
-            Download TDEV & MDEV in CSV
+            Download TDEV in CSV
           </button>
           <button (click)="downloadTdevPlot()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Download TDEV Plot</button>
         </div>

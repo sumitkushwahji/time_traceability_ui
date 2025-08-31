@@ -37,6 +37,59 @@ interface SatData {
   styleUrls: ['./link-stability.component.css'],
 })
 export class LinkStabilityComponent implements OnInit, OnDestroy {
+  @ViewChild('mdevChartCanvas') mdevChartCanvas: any;
+  public downloadMdevCSV(): void {
+    if (!this.mdevChartData) {
+      console.error('No MDEV data available for download.');
+      return;
+    }
+
+    // Build CSV header with all receiver columns
+    const mdevDatasets = this.mdevChartData.datasets;
+    let csvHeader = 'Averaging Time (τ)';
+    mdevDatasets.forEach(dataset => {
+      let receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
+      receiver = getReceiverDisplayName(receiver);
+      csvHeader += `,${receiver} MDEV`;
+    });
+    csvHeader += '\n';
+
+    // Build CSV rows with exponential formatting
+    const csvRows = (this.mdevChartData.labels as string[])?.map((label: string, i: number) => {
+      let row = label;
+      mdevDatasets.forEach(dataset => {
+        const value = dataset.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toExponential(2) : '';
+        row += `,${formattedValue}`;
+      });
+      return row;
+    }).join('\n') || '';
+
+    const csvContent = csvHeader + csvRows;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `MDEV_Analysis_AllReceivers_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  public downloadMdevPlot(): void {
+  if (!this.mdevChartCanvas) return;
+  const chartCanvas: HTMLCanvasElement = this.mdevChartCanvas.nativeElement;
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = chartCanvas.width;
+  tempCanvas.height = chartCanvas.height;
+  const ctx = tempCanvas.getContext('2d');
+  if (!ctx) return;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+  ctx.drawImage(chartCanvas, 0, 0);
+  const link = document.createElement('a');
+  link.href = tempCanvas.toDataURL('image/png');
+  link.download = `mdev-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
+  link.click();
+  }
   public downloadTdevCSV(): void {
     if (!this.tdevChartData) {
       console.error('No TDEV data available for download.');
@@ -120,8 +173,10 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   filteredData: SatData[] = [];
   plotChartData: any;
   tdevChartData: ChartConfiguration["data"] | null = null;
+  mdevChartData: ChartConfiguration["data"] | null = null;
   plotChartOptions: any;
   tdevChartOptions: any;
+  mdevChartOptions: any;
 
   // View Controls
   plotView = { standard: true, weighted: true };
@@ -254,6 +309,24 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
         y: { type: 'logarithmic', title: { display: true, text: 'Time Deviation (ns)' } },
       },
     };
+    this.mdevChartOptions = {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        title: { display: true, text: '', font: { size: 16, weight: 'bold' } },
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 15
+          }
+        },
+      },
+      scales: {
+        x: { type: 'logarithmic', title: { display: true, text: 'Averaging Time τ (seconds)' } },
+        y: { type: 'logarithmic', title: { display: true, text: 'Modified Allan Deviation (ns)' } },
+      },
+    };
   }
 
   private updateChartTitles(): void {
@@ -342,23 +415,61 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     
     // Asynchronous calculation to prevent UI freeze
     setTimeout(() => {
-        try {
-            const allTdevResults: any[] = [];
-            if (this.plotView.standard) {
-                allTdevResults.push(...this.calculateTDEVForField(dataForTdev, 'avgRefsysDifference'));
-            }
-            if (this.plotView.weighted) {
-                allTdevResults.push(...this.calculateTDEVForField(dataForTdev, 'weightedAvgDifference'));
-            }
-            this.plotTimeDeviationMultiReceiver(allTdevResults);
-        } catch (e) {
-            console.error("TDEV calculation failed:", e);
-            this.error = "An error occurred during TDEV calculation.";
-            this.showTdevAnalysis = false;
-        } finally {
-            this.isLoading = false;
+      try {
+        const allTdevResults: any[] = [];
+        const allMdevResults: any[] = [];
+        if (this.plotView.standard) {
+          allTdevResults.push(...this.calculateTDEVForField(dataForTdev, 'avgRefsysDifference'));
+          allMdevResults.push(...this.calculateMDEVForField(dataForTdev, 'avgRefsysDifference'));
         }
+        if (this.plotView.weighted) {
+          allTdevResults.push(...this.calculateTDEVForField(dataForTdev, 'weightedAvgDifference'));
+          allMdevResults.push(...this.calculateMDEVForField(dataForTdev, 'weightedAvgDifference'));
+        }
+        this.plotTimeDeviationMultiReceiver(allTdevResults);
+        this.plotMdevMultiReceiver(allMdevResults);
+      } catch (e) {
+        console.error("TDEV/MDEV calculation failed:", e);
+        this.error = "An error occurred during TDEV/MDEV calculation.";
+        this.showTdevAnalysis = false;
+      } finally {
+        this.isLoading = false;
+      }
     }, 50);
+  }
+  private calculateMDEVForField(data: SatData[], field: 'avgRefsysDifference' | 'weightedAvgDifference') {
+    const allStations = [...new Set(data.map(d => d.source2))];
+    return allStations.map(station => {
+      const stationData = data.filter(d => d.source2 === station && d[field] != null).map(d => d[field]);
+      if (stationData.length >= 10) {
+        return { station, field, data: this.calculateMDEV(stationData, 960) };
+      }
+      return null;
+    }).filter(Boolean);
+  }
+  private plotMdevMultiReceiver(allMdevData: any[]): void {
+    if (allMdevData.length === 0) {
+      this.mdevChartData = { labels: [], datasets: [] };
+      return;
+    }
+    const labels = allMdevData[0]?.data.map((entry: any) => entry.tau.toString()) || [];
+    const datasets = allMdevData.map(({ station, field, data }) => {
+      const type = field === 'avgRefsysDifference' ? 'standard' : 'weighted';
+      const color = this.plotView.standard && this.plotView.weighted && type === 'weighted'
+        ? this.getModifiedColor(this.getColorForSource2(station))
+        : this.getColorForSource2(station);
+      return {
+        data: data.map((entry: any) => entry.MDEV),
+        label: `${this.getDynamicDisplayName(station, type)} MDEV`,
+        borderColor: color,
+        borderDash: type === 'weighted' ? [5, 5] : [],
+        backgroundColor: 'transparent',
+        pointBorderColor: color,
+        pointBackgroundColor: color,
+        fill: false, tension: 0.1, borderWidth: 2, pointRadius: 3,
+      };
+    });
+    this.mdevChartData = { labels, datasets };
   }
 
   private calculateTDEVForField(data: SatData[], field: 'avgRefsysDifference' | 'weightedAvgDifference') {
