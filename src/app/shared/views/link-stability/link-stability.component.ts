@@ -124,7 +124,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   tdevChartOptions: any;
 
   // View Controls
-  plotView = { standard: true, weighted: false };
+  plotView = { standard: true, weighted: true };
   startDate: string;
   endDate: string;
 
@@ -156,11 +156,11 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    // Initialize date properties to the last 24 hours
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    this.endDate = this.formatDateForInput(now);
-    this.startDate = this.formatDateForInput(yesterday);
+  // Initialize date properties to the last 48 hours
+  const now = new Date();
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+  this.endDate = this.formatDateForInput(now);
+  this.startDate = this.formatDateForInput(twoDaysAgo);
     this.initializeChartOptions();
   }
 

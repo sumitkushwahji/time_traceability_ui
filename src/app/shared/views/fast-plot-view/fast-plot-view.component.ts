@@ -43,7 +43,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   // State for the plot view selection
   plotView = {
     standard: true,
-    weighted: false
+    weighted: true
   };
 
   // Properties for date inputs
@@ -71,12 +71,12 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     private dateRangeService: DateRangeService,
     private route: ActivatedRoute
   ) {
-    // Initialize date properties to the last 24 hours
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  // Initialize date properties to the last 48 hours
+  const now = new Date();
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
     
-    this.endDate = this.formatDateForInput(now);
-    this.startDate = this.formatDateForInput(yesterday);
+  this.endDate = this.formatDateForInput(now);
+  this.startDate = this.formatDateForInput(twoDaysAgo);
   }
 
   ngOnInit(): void {
