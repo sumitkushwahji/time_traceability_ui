@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, skip } from 'rxjs';
 import { SatDataService } from '../../../services/sat-data.service';
 import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
@@ -30,41 +30,29 @@ interface SatData {
   styleUrls: ['./fast-data-view.component.css'],
 })
 export class FastDataViewComponent implements OnInit, OnDestroy {
-  // Math object for template access
+  // --- STATE MANAGEMENT ---
   Math = Math;
-  
-  // Raw data from API (cached)
-  allData: SatData[] = [];
-  
-  // Filtered and displayed data
-  filteredData: SatData[] = [];
   displayedData: SatData[] = [];
-  
-  // Pagination
+  totalItems = 0;
+  loading = false;
+  dataIdentifier?: string;
+
+  // --- PAGINATION & SORTING ---
   currentPage = 1;
   pageSize = 10;
   pageSizeOptions = [5, 10, 25, 50, 100];
-  totalItems = 0;
-  
-  // Sorting
-  sortColumn = 'mjd';
+  sortColumn = 'mjd_date_time';
   sortDirection = 'desc';
-  
-  // Filtering and search
-  selectedFilter = 'NAVIC'; // Default to NAVIC instead of ALL
-  searchQuery = '';
+
+  // --- FILTERING ---
+  selectedFilter = 'NAVIC';
   startDate = '';
   endDate = '';
-  
-  // UI state
-  dropdownOpen = false;
-  loading = false;
-  
-  // Location configuration
-  dataIdentifier?: string;
+  searchQuery = '';
+  private searchSubject = new Subject<string>();
 
-  // FIX: Flag to prevent applyFilters from running before initial data is loaded
-  private initialDataLoaded = false;
+  // --- UI ---
+  dropdownOpen = false;
   
   private destroy$ = new Subject<void>();
 
@@ -79,28 +67,39 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.dataIdentifier = this.route.snapshot.data['dataIdentifier'];
     
-    // Subscribe to filter changes
-    this.filterService.filter$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((filter) => {
-        this.selectedFilter = filter;
-        // FIX: Only call applyFilters if the initial data has already been loaded.
-        // This prevents the race condition on component initialization.
-        if (this.initialDataLoaded) {
-            this.applyFilters();
-        }
-      });
-    
-    // Subscribe to date range changes
-    this.dateRangeService.dateRange$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((range) => {
-        this.startDate = range.start;
-        this.endDate = range.end;
-        this.loadData(); // Reload data when date range changes
-      });
-    
-    // Initial data load is triggered by the dateRangeService subscription firing immediately
+    // Handle filter changes. This subscription also handles the initial data load.
+    this.filterService.filter$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(filter => {
+      const filterChanged = this.selectedFilter !== filter;
+      this.selectedFilter = filter;
+      if (filterChanged) {
+        this.currentPage = 1;
+      }
+      this.loadData();
+    });
+
+    // Handle date range changes, but skip the initial value from the service.
+    // This is the key fix to ignore the "last day" default set by the plot component.
+    this.dateRangeService.dateRange$.pipe(
+      skip(1), // Ignore the first emission
+      takeUntil(this.destroy$)
+    ).subscribe(range => {
+      this.startDate = range.start;
+      this.endDate = range.end;
+      this.currentPage = 1;
+      this.loadData();
+    });
+
+    // Add debouncing to the search input to avoid excessive API calls
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+        this.currentPage = 1;
+        this.loadData();
+    });
   }
 
   ngOnDestroy(): void {
@@ -111,156 +110,40 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
   loadData(): void {
     this.loading = true;
     
-    const source2Codes = this.dataIdentifier 
-      ? locationSource2Map[this.dataIdentifier] ?? null 
-      : null;
+    const apiSortColumn = this.sortColumn === 'mjdDateTime' ? 'mjd_date_time' : this.sortColumn;
 
-    if (source2Codes) {
-      // 🚀 Use new optimized bulk endpoint for location-specific data
-      this.satDataService.getBulkLocationData(
-        source2Codes,
-        this.startDate,
-        this.endDate
-      ).subscribe({
-        next: (response) => {
-          this.allData = response.data;
-          console.log(`✅ Loaded ${this.allData.length} records from optimized bulk endpoint (cached: ${response.cached})`);
-          
-          const uniqueSatLetters = [...new Set(this.allData.map(item => item.satLetter))];
-          console.log('Unique satellite letters available:', uniqueSatLetters);
-          
-          const navicCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'NAVIC').length;
-          const gpsCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GPS').length;
-          const glonassCount = this.allData.filter(item => item.satLetter?.toUpperCase() === 'GLONASS').length;
-          
-          console.log('Satellite counts - NAVIC:', navicCount, 'GPS:', gpsCount, 'GLONASS:', glonassCount);
-          
-          // FIX: Set the flag to true after the first data load succeeds
-          this.initialDataLoaded = true;
-          this.applyFilters();
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading bulk data, falling back to optimized paginated:', error);
-          this.loadDataFallback();
-        }
-      });
-    } else {
-      // For non-location specific data (home page), use optimized bulk endpoint with ALL locations
-      this.loadDataFallback();
-    }
-  }
+    const source2Codes = this.dataIdentifier
+      ? locationSource2Map[this.dataIdentifier]
+      : Object.values(locationSource2Map).flat();
 
-  private loadDataFallback(): void {
-    const allSource2Values = Object.values(locationSource2Map).flat();
-    console.log('🏠 Loading home page data for data view with optimized bulk endpoint...');
-    const startTime = performance.now();
-
-    this.satDataService.getBulkLocationData(allSource2Values, this.startDate, this.endDate).subscribe({
-      next: (response: { data: SatData[]; totalElements: number; cached: boolean }) => {
-        const endTime = performance.now();
-        const loadTime = (endTime - startTime).toFixed(2);
-        
-        console.log(`🏠 Home page data view loaded ${response.data.length} total records in ${loadTime}ms (cached: ${response.cached})`);
-        this.allData = response.data;
-        
-        console.log(`⚡ Data view performance: ${loadTime}ms vs previous method`);
-        
-        // FIX: Set the flag to true after the first data load succeeds
-        this.initialDataLoaded = true;
-        this.applyFilters();
-        this.loading = false;
-      },
-      error: (error: any) => {
-        console.error('❌ Error loading optimized home page data, using legacy fallback:', error);
-        this.loadDataLegacyFallback();
-      }
-    });
-  }
-
-  private loadDataLegacyFallback(): void {
-    console.log('⚠️  Using legacy data view fallback method...');
-    const pageSize = 1000;
-    
-    this.satDataService.getSatData(
-      0, 
-      pageSize,
-      'mjd',
-      'asc',
-      '',
+    this.satDataService.getOptimizedSatData(
+      source2Codes,
+      this.currentPage - 1, // API is 0-indexed
+      this.pageSize,
+      apiSortColumn,
+      this.sortDirection,
       this.startDate,
       this.endDate,
-      null
+      this.selectedFilter !== 'ALL' ? this.selectedFilter : null
     ).subscribe({
       next: (response) => {
-        this.allData = response.content;
-        console.log(`⚠️  Legacy fallback loaded ${this.allData.length} records`);
-        
-        // FIX: Set the flag to true after the first data load succeeds
-        this.initialDataLoaded = true;
-        this.applyFilters();
+        this.displayedData = response.content;
+        this.totalItems = response.totalElements;
         this.loading = false;
+        console.log(`✅ Loaded page ${this.currentPage} with ${this.displayedData.length} records.`);
       },
       error: (error) => {
-        console.error('❌ Legacy fallback also failed:', error);
+        console.error('❌ Error loading optimized data:', error);
+        this.displayedData = [];
+        this.totalItems = 0;
         this.loading = false;
       }
     });
   }
 
-  applyFilters(): void {
-    let filtered = [...this.allData];
-    
-    if (this.searchQuery.trim()) {
-      const query = this.searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(item =>
-        item.id?.toLowerCase().includes(query) ||
-        item.satLetter?.toLowerCase().includes(query) ||
-        item.mjdDateTime?.toLowerCase().includes(query) ||
-        item.source1?.toLowerCase().includes(query) ||
-        item.source2?.toLowerCase().includes(query)
-      );
-    }
-    
-    if (this.selectedFilter === 'GPS') {
-      filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'GPS');
-    } else if (this.selectedFilter === 'NAVIC') {
-      filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'NAVIC');
-      console.log('NAVIC Filter Applied:');
-      console.log('Total items before filter:', this.allData.length);
-      console.log('Items after NAVIC filter:', filtered.length);
-    } else if (this.selectedFilter === 'GLONASS') {
-      filtered = filtered.filter(item => item.satLetter?.toUpperCase() === 'GLONASS');
-    }
-    
-    this.filteredData = filtered;
-    this.totalItems = filtered.length;
-    this.currentPage = 1; // Reset to first page
-    this.applySortingAndPagination();
-  }
-
-  applySortingAndPagination(): void {
-    let sorted = [...this.filteredData];
-    
-    sorted.sort((a, b) => {
-      const aValue = a[this.sortColumn as keyof SatData];
-      const bValue = b[this.sortColumn as keyof SatData];
-      
-      let comparison = 0;
-      if (aValue < bValue) comparison = -1;
-      if (aValue > bValue) comparison = 1;
-      
-      return this.sortDirection === 'asc' ? comparison : -comparison;
-    });
-    
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.displayedData = sorted.slice(startIndex, endIndex);
-  }
-
-  // Event handlers
-  onSearchChange(): void {
-    this.applyFilters();
+  // --- EVENT HANDLERS ---
+  onSearchChange(query: string): void {
+    this.searchSubject.next(query);
   }
 
   setSort(column: string): void {
@@ -268,56 +151,58 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortColumn = column;
-      this.sortDirection = 'asc';
+      this.sortDirection = 'desc';
     }
-    this.applySortingAndPagination();
+    this.loadData();
+  }
+
+  onPageChange(newPage: number): void {
+    this.currentPage = newPage;
+    this.loadData();
   }
 
   nextPage(): void {
-    if (this.currentPage * this.pageSize < this.totalItems) {
-      this.currentPage++;
-      this.applySortingAndPagination();
+    if ((this.currentPage * this.pageSize) < this.totalItems) {
+      this.onPageChange(this.currentPage + 1);
     }
   }
 
   previousPage(): void {
     if (this.currentPage > 1) {
-      this.currentPage--;
-      this.applySortingAndPagination();
+      this.onPageChange(this.currentPage - 1);
     }
   }
 
   onPageSizeChange(): void {
     this.currentPage = 1;
-    this.applySortingAndPagination();
+    this.loadData();
   }
 
-  // Utility getters
+  // --- UTILITY & EXPORT ---
   get startIndex(): number {
     return (this.currentPage - 1) * this.pageSize;
   }
 
   get endIndex(): number {
-    const end = this.startIndex + this.displayedData.length;
+    const end = this.startIndex + this.pageSize;
     return end > this.totalItems ? this.totalItems : end;
   }
 
-  // Export functionality
   toggleDropdown(): void {
     this.dropdownOpen = !this.dropdownOpen;
   }
 
   export(format: string): void {
-    const fileName = `${this.dataIdentifier || 'data'}_export.${format}`;
-    const tableName = 'sat_data';
-
+    console.warn(`Exporting only the current page of data.`);
+    const fileName = `${this.dataIdentifier || 'data'}_export_page_${this.currentPage}.${format}`;
+    
     this.exportService.exportTable(
-      this.filteredData,
+      this.displayedData,
       format as 'csv' | 'json' | 'txt' | 'sql',
       fileName,
-      tableName
+      'sat_data'
     );
-
     this.dropdownOpen = false;
   }
 }
+
