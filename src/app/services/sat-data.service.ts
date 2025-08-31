@@ -28,6 +28,21 @@ export interface SatData2 {
     [location: string]: number;
   };
 }
+// Define the data structure for a single row of pivoted data
+export interface SatPivotedData {
+  id: string;
+  satLetter: string;
+  mjd: number;
+  mjdDateTime: string;
+  sttime: string;
+  locationDiffs: { [key: string]: number };
+}
+
+// Define the structure of the paginated API response
+export interface PivotedDataResponse {
+  content: SatPivotedData[];
+  totalElements: number;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +52,7 @@ export class SatDataService {
   private readonly baseUrl2 = `${environment.apiBaseUrl}/data`; // Often used for common base URL
   private readonly optimizedUrl = `${environment.apiBaseUrl}/data/optimized-sat-differences`;
   private readonly bulkUrl = `${environment.apiBaseUrl}/data/bulk-location-data`;
+
 
   constructor(
     private http: HttpClient,
@@ -59,6 +75,49 @@ export class SatDataService {
       return of(result as T);
     };
   }
+
+  // --- NEW METHOD FOR PIVOTED DATA VIEW ---
+  /**
+   * Gets paginated and filtered data from the pivoted materialized view.
+   * @param page - The page number (0-indexed).
+   * @param size - The number of items per page.
+   * @param startDate - The start of the date range (ISO string format).
+   * @param endDate - The end of the date range (ISO string format).
+   * @param satLetter - The satellite system to filter by (e.g., 'GPS', 'NAVIC').
+   * @returns An Observable of the paginated pivoted data.
+   */
+  getPivotedSatData2(
+    page: number,
+    size: number,
+    startDate?: string,
+    endDate?: string,
+    satLetter?: string
+  ): Observable<PivotedDataResponse> {
+    const url = `${this.baseUrl2}/pivoted-sat-data`;
+
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString())
+      .set('sortBy', 'mjd_date_time') // Default sort as required by the view
+      .set('sortDirection', 'desc');
+
+    if (startDate) {
+      params = params.set('startDate', startDate);
+    }
+    if (endDate) {
+      params = params.set('endDate', endDate);
+    }
+    if (satLetter && satLetter.toUpperCase() !== 'ALL') {
+      params = params.set('satLetter', satLetter);
+    }
+
+    return this.http.get<PivotedDataResponse>(url, { params }).pipe(
+      catchError(this.handleError<PivotedDataResponse>('getPivotedSatData', { content: [], totalElements: 0 }))
+    );
+  }
+
+
+
 
   getSatData(
     page: number,

@@ -1,36 +1,60 @@
-<div class="p-4">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-xl font-semibold">Common View Time Transfer Link</h2>
-    <button 
-      (click)="downloadPlot()" 
-      class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
-      [disabled]="!chartData || filteredData.length === 0"
-    >
-      Download Plot
-    </button>
+<div class="min-h-screen bg-slate-100 p-4">
+  <div class="bg-white rounded-2xl shadow-lg p-4">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-lg font-semibold text-slate-700">Common View Plot</h1>
+       <button 
+        (click)="downloadPlot()" 
+        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4"
+        [disabled]="isLoading || !plotData || plotData.length === 0">
+        Download Plot
+      </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        <!-- Date Range Pickers -->
+        <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <label for="startDate" class="font-medium text-slate-600">Start Date:</label>
+                <input type="datetime-local" id="startDate" [(ngModel)]="startDate" (change)="onDateRangeChange()" class="border rounded px-2 py-1 shadow-sm">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="endDate" class="font-medium text-slate-600">End Date:</label>
+                <input type="datetime-local" id="endDate" [(ngModel)]="endDate" (change)="onDateRangeChange()" class="border rounded px-2 py-1 shadow-sm">
+            </div>
+        </div>
+        
+        <!-- Data Summary -->
+        <div class="text-sm text-gray-600">
+          <span class="font-medium">{{ plotData.length }}</span> data points
+          <span *ngIf="selectedFilter !== 'ALL'" class="text-blue-600 ml-1">
+            ({{ selectedFilter }} filtered)
+          </span>
+        </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="bg-gray-50 rounded-lg p-4" style="height: 500px;">
+        <div *ngIf="isLoading" class="flex justify-center items-center h-full">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+
+        <canvas *ngIf="!isLoading && isBrowser && plotData.length > 0"
+                baseChart 
+                [data]="chartData" 
+                [options]="chartOptions" 
+                type="line" 
+                class="w-full h-full">
+        </canvas>
+
+        <div *ngIf="!isLoading && plotData.length === 0" class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <p class="text-lg">No data available for the selected filters.</p>
+          </div>
+        </div>
+    </div>
   </div>
-
-  <div class="mb-4">
-    <label for="dataLimit" class="mr-2 font-medium">Show last:</label>
-    <select id="dataLimit"
-            [(ngModel)]="dataLimit"
-            (change)="updateChartData()"
-            class="border px-2 py-1">
-      <option *ngFor="let limit of dataLimits" [value]="limit">
-        {{ limit === -1 ? 'All' : limit }}
-      </option>
-    </select>
-  </div>
-
-  <ng-container *ngIf="isBrowser; else ssrFallback">
-    <canvas baseChart
-            [data]="chartData"
-            [options]="chartOptions"
-            [type]="'line'">
-    </canvas>
-  </ng-container>
-
-  <ng-template #ssrFallback>
-    <p class="text-gray-500 italic">Chart is not available during server-side rendering.</p>
-  </ng-template>
 </div>
+
