@@ -14,7 +14,7 @@ export class DocumentationComponent implements OnInit {
 
   constructor(private sanitizer: DomSanitizer) {
     // Create a safe URL for the PDF
-    this.pdfSrc = this.sanitizer.bypassSecurityTrustResourceUrl('/assets/docs/readme.pdf');
+    this.pdfSrc = this.sanitizer.bypassSecurityTrustResourceUrl('/assets/docs/cvav1.pdf');
   }
 
   ngOnInit(): void {}

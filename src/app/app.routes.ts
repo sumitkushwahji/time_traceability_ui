@@ -8,6 +8,7 @@ import { FaridabadComponent } from './pages/faridabad/faridabad.component';
 import { GuwahatiComponent } from './pages/guwahati/guwahati.component';
 import { DrcComponent } from './pages/drc/drc.component';
 import { FileUploadDashboardComponent } from './shared/file-upload-dashboard/file-upload-dashboard.component';
+import { DocumentationComponent } from './pages/documentation/documentation.component';
 
 export const routes: Routes = [
   {
@@ -76,6 +77,10 @@ export const routes: Routes = [
       {
         path: 'file-upload-stats',
         component: FileUploadDashboardComponent,
+      },
+      {
+        path: 'documentation',
+        component: DocumentationComponent,
       },
     ],
   },
