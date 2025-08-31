@@ -11,6 +11,8 @@ import { getReceiverDisplayName } from '../../receiver-display-name.map';
 import { FilterService } from '../../../services/filter.service';
 import { DateRangeService } from '../../../services/date-range.service';
 import { locationSource2Map } from '../../location-source2.map';
+import { ViewChild } from '@angular/core';
+import { BaseChartDirective } from 'ng2-charts';
 
 // Updated interface to include weighted difference
 interface SatData {
@@ -35,6 +37,83 @@ interface SatData {
   styleUrls: ['./link-stability.component.css'],
 })
 export class LinkStabilityComponent implements OnInit, OnDestroy {
+  public downloadTdevCSV(): void {
+    if (!this.tdevChartData) {
+      console.error('No TDEV data available for download.');
+      return;
+    }
+
+    // Build CSV header with all receiver columns
+    const mdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('MDEV'));
+    const tdevDatasets = this.tdevChartData.datasets.filter(d => d.label?.includes('TDEV'));
+
+    let csvHeader = 'Averaging Time (τ)';
+
+    // Add MDEV columns for each receiver
+    mdevDatasets.forEach(dataset => {
+      let receiver = dataset.label?.replace(' MDEV', '') || 'Unknown';
+      receiver = getReceiverDisplayName(receiver);
+      csvHeader += `,${receiver} MDEV`;
+    });
+
+    // Add TDEV columns for each receiver
+    tdevDatasets.forEach(dataset => {
+      let receiver = dataset.label?.replace(' TDEV', '') || 'Unknown';
+      receiver = getReceiverDisplayName(receiver);
+      csvHeader += `,${receiver} TDEV`;
+    });
+
+    csvHeader += '\n';
+
+    // Build CSV rows with exponential formatting
+    const csvRows = (this.tdevChartData.labels as string[])?.map((label: string, i: number) => {
+      let row = label;
+
+      // Add MDEV values for each receiver in exponential format
+      mdevDatasets.forEach(dataset => {
+        const value = dataset.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toExponential(2) : '';
+        row += `,${formattedValue}`;
+      });
+
+      // Add TDEV values for each receiver in exponential format
+      tdevDatasets.forEach(dataset => {
+        const value = dataset.data[i];
+        const formattedValue = (value != null && typeof value === 'number') ? value.toExponential(2) : '';
+        row += `,${formattedValue}`;
+      });
+
+      return row;
+    }).join('\n') || '';
+
+    const csvContent = csvHeader + csvRows;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `TDEV_Analysis_AllReceivers_${this.dataIdentifier}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+  @ViewChild('tdevChartCanvas') tdevChartCanvas: any;
+  public downloadTdevPlot(): void {
+    if (!this.tdevChartCanvas) return;
+    const chartCanvas: HTMLCanvasElement = this.tdevChartCanvas.nativeElement;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = chartCanvas.width;
+    tempCanvas.height = chartCanvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.drawImage(chartCanvas, 0, 0);
+    const link = document.createElement('a');
+    link.href = tempCanvas.toDataURL('image/png');
+    link.download = `tdev-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
+    link.click();
+  }
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
   private destroy$ = new Subject<void>();
   
   // Data and Chart State
@@ -161,7 +240,14 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         title: { display: true, text: '', font: { size: 16, weight: 'bold' } },
-        legend: { position: 'top' as const },
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'circle',
+            boxWidth: 15
+          }
+        },
       },
       scales: {
         x: { type: 'logarithmic', title: { display: true, text: 'Averaging Time τ (seconds)' } },
@@ -222,14 +308,17 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
 
   private createDataSet(allData: SatData[], groupData: SatData[], type: 'standard' | 'weighted', color: string) {
     const field = type === 'standard' ? 'avgRefsysDifference' : 'weightedAvgDifference';
-    return {
-        label: this.getDynamicDisplayName(groupData[0].source2, type),
-        data: allData.map(d => groupData.find(p => p.mjdDateTime === d.mjdDateTime)?.[field] ?? null),
-        borderColor: color,
-        backgroundColor: color + '20',
-        borderDash: type === 'weighted' ? [5, 5] : [],
-        pointRadius: 3, fill: false, tension: 0.3
-    };
+  return {
+    label: this.getDynamicDisplayName(groupData[0].source2, type),
+    data: allData.map(d => groupData.find(p => p.mjdDateTime === d.mjdDateTime)?.[field] ?? null),
+    borderColor: color,
+    backgroundColor: color + '20',
+    borderDash: type === 'weighted' ? [5, 5] : [],
+    pointRadius: 3,
+    pointBorderColor: color,
+    pointBackgroundColor: color,
+    fill: false, tension: 0.3
+  };
   }
   
   public onDateRangeChange(): void {
@@ -321,27 +410,20 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
           const color = this.plotView.standard && this.plotView.weighted && type === 'weighted' 
               ? this.getModifiedColor(this.getColorForSource2(station)) 
               : this.getColorForSource2(station);
-          return {
-              data: data.map((entry: any) => entry.TDEV),
-              label: `${this.getDynamicDisplayName(station, type)} TDEV`,
-              borderColor: color,
-              borderDash: type === 'weighted' ? [5, 5] : [],
-              backgroundColor: 'transparent', fill: false, tension: 0.1, borderWidth: 2, pointRadius: 3,
-          };
+      return {
+        data: data.map((entry: any) => entry.TDEV),
+        label: `${this.getDynamicDisplayName(station, type)} TDEV`,
+        borderColor: color,
+        borderDash: type === 'weighted' ? [5, 5] : [],
+        backgroundColor: 'transparent',
+        pointBorderColor: color,
+        pointBackgroundColor: color,
+        fill: false, tension: 0.1, borderWidth: 2, pointRadius: 3,
+      };
       });
       this.tdevChartData = { labels, datasets };
   }
   
-  getStatistics(field: 'avgRefsysDifference' | 'weightedAvgDifference'): { min: number; max: number; avg: number } {
-    const dataSet = this.filteredData;
-    if (dataSet.length === 0) return { min: 0, max: 0, avg: 0 };
-    const values = dataSet.map(item => item[field]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
-    if (values.length === 0) return { min: 0, max: 0, avg: 0 };
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
-    return { min: Number(min.toFixed(2)), max: Number(max.toFixed(2)), avg: Number(avg.toFixed(2)) };
-  }
 
   private getDynamicDisplayName(code: string, type: 'standard' | 'weighted'): string {
     const baseName = getReceiverDisplayName(code);
@@ -372,6 +454,22 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
     const offset = date.getTimezoneOffset();
     const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
     return adjustedDate.toISOString().slice(0, 16);
+  }
+    public downloadPlot(): void {
+    if (!this.chart?.chart) return;
+    const chartCanvas = this.chart.chart.canvas;
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = chartCanvas.width;
+    tempCanvas.height = chartCanvas.height;
+    const ctx = tempCanvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    ctx.drawImage(chartCanvas, 0, 0);
+    const link = document.createElement('a');
+    link.href = tempCanvas.toDataURL('image/png');
+    link.download = `common-view-plot-${this.dataIdentifier || 'all'}-${new Date().toISOString()}.png`;
+    link.click();
   }
 }
 
