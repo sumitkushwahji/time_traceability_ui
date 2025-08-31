@@ -1,130 +1,109 @@
-<div class="p-4">
-  <h2 class="text-xl font-semibold mb-4">Link Stability Analysis</h2>
+<div class="min-h-screen bg-slate-100 p-4">
+  <div class="bg-white rounded-2xl shadow-lg p-4">
 
-  <!-- Controls Section -->
-  <div class="mb-4 flex flex-wrap gap-4 items-center">
-    <div>
-      <label for="dataLimit" class="mr-2 font-medium">Show last:</label>
-      <select id="dataLimit"
-              [(ngModel)]="dataLimit"
-              (change)="onDataLimitChange()"
-              class="border px-2 py-1 rounded">
-        <option *ngFor="let limit of dataLimits" [value]="limit">
-          {{ limit === -1 ? 'All' : limit }}
-        </option>
-      </select>
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-lg font-semibold text-slate-700">Link Stability Analysis</h1>
+      <button 
+        (click)="calculateTimeDeviation()" 
+        [disabled]="isLoading || filteredData.length < 10"
+        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+        {{ isLoading ? 'Calculating...' : 'Calculate TDEV' }}
+      </button>
     </div>
 
-    <button 
-      (click)="calculateTimeDeviation()"
-      [disabled]="isLoading || filteredData.length < 10"
-      class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
-      {{ isLoading ? 'Calculating...' : 'Calculate Time Deviation (TDEV)' }}
-    </button>
-  </div>
+    <!-- Loading indicator -->
+    <div *ngIf="isLoading" class="flex justify-center items-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <span class="ml-2 text-gray-600">Processing...</span>
+    </div>
+    <div *ngIf="error && !isLoading" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">{{ error }}</div>
 
-  <!-- Error Display -->
-  <div *ngIf="error" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-    {{ error }}
-  </div>
-
-  <!-- Data Summary -->
-  <div class="mb-4 p-3 bg-gray-50 rounded">
-    <p class="text-sm text-gray-600">
-      Data Points: {{ displayedDataCount }} | 
-      Filter: {{ selectedFilter === 'ALL' ? 'All Satellites' : selectedFilter }} |
-      Location: {{ dataIdentifier | titlecase }}
-    </p>
-  </div>
-
-  <!-- Loading Indicator -->
-  <div *ngIf="isLoading" class="flex items-center justify-center py-12">
-    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-    <span class="ml-3 text-lg text-gray-600">Processing...</span>
-  </div>
-
-  <!-- CV Diff Plot -->
-  <div *ngIf="plotChartData && !isLoading && isBrowser" class="mb-6">
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">CV Diff for {{ dataIdentifier | titlecase }}</h3>
-        <button 
-          (click)="downloadPlotCSV()"
-          class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm">
-          Download CSV
-        </button>
+    <!-- Main content when not loading -->
+    <div *ngIf="!isLoading">
+      <!-- Controls -->
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+        
+        <!-- Date Range Pickers -->
+        <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+                <label for="startDate" class="font-medium text-slate-600">Start Date:</label>
+                <input type="datetime-local" id="startDate" [(ngModel)]="startDate" (change)="onDateRangeChange()" class="border rounded px-2 py-1 shadow-sm">
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="endDate" class="font-medium text-slate-600">End Date:</label>
+                <input type="datetime-local" id="endDate" [(ngModel)]="endDate" (change)="onDateRangeChange()" class="border rounded px-2 py-1 shadow-sm">
+            </div>
+        </div>
+        
+        <!-- Plot View Selection -->
+        <div class="flex items-center gap-4 rounded-lg bg-slate-100 p-1 text-sm">
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('standard')" [checked]="plotView.standard && !plotView.weighted"> Standard
+            </label>
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('weighted')" [checked]="!plotView.standard && plotView.weighted"> Weighted
+            </label>
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('both')" [checked]="plotView.standard && plotView.weighted"> Both
+            </label>
+        </div>
+        
+        <!-- Data Summary -->
+        <div class="text-sm text-gray-600">
+          <span class="font-medium">{{ filteredData.length }}</span> data points
+          <span *ngIf="selectedFilter !== 'ALL'" class="text-blue-600 ml-1">
+            ({{ selectedFilter }} filtered)
+          </span>
+        </div>
       </div>
-      
-      <div class="h-96">
-        <canvas baseChart
-                [data]="plotChartData"
-                [options]="plotChartOptions"
-                [type]="'line'">
+
+      <!-- Chart Container -->
+      <div class="bg-gray-50 rounded-lg p-4" style="height: 500px;">
+        <canvas 
+          *ngIf="plotChartData && isBrowser && filteredData.length > 0"
+          baseChart [data]="plotChartData" [options]="plotChartOptions" type="line" class="w-full h-full">
         </canvas>
+        <div *ngIf="!isLoading && filteredData.length === 0" class="flex items-center justify-center h-full text-gray-500">
+          <div class="text-center">
+            <p class="text-lg">No data available for the selected filters.</p>
+          </div>
+        </div>
       </div>
 
-      <!-- Legend -->
-      <div class="mt-4 flex flex-wrap gap-4 text-sm">
-        <div class="flex items-center">
-          <span class="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-          <span>Time difference within ±30 ns</span>
+      <!-- Statistics Panel -->
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div *ngIf="plotView.standard" class="bg-slate-50 p-3 rounded-lg border">
+            <h3 class="font-semibold text-slate-700 mb-2">Statistics (Standard View)</h3>
+            <div *ngIf="filteredData.length > 0">
+                <div class="flex justify-between py-1 border-b"><span class="text-slate-600">Min:</span><span class="font-medium">{{ getStatistics('avgRefsysDifference').min }} ns</span></div>
+                <div class="flex justify-between py-1 border-b"><span class="text-slate-600">Max:</span><span class="font-medium">{{ getStatistics('avgRefsysDifference').max }} ns</span></div>
+                <div class="flex justify-between pt-1"><span class="text-slate-600">Avg:</span><span class="font-medium">{{ getStatistics('avgRefsysDifference').avg }} ns</span></div>
+            </div>
+             <div *ngIf="filteredData.length === 0" class="text-slate-500">No data for statistics.</div>
         </div>
-        <div class="flex items-center">
-          <span class="w-3 h-3 bg-yellow-400 rounded-full mr-2"></span>
-          <span>Time difference 30-50 ns</span>
+        <div *ngIf="plotView.weighted" class="bg-slate-50 p-3 rounded-lg border">
+            <h3 class="font-semibold text-slate-700 mb-2">Statistics (Weighted View)</h3>
+            <div *ngIf="filteredData.length > 0">
+                <div class="flex justify-between py-1 border-b"><span class="text-slate-600">Min:</span><span class="font-medium">{{ getStatistics('weightedAvgDifference').min }} ns</span></div>
+                <div class="flex justify-between py-1 border-b"><span class="text-slate-600">Max:</span><span class="font-medium">{{ getStatistics('weightedAvgDifference').max }} ns</span></div>
+                <div class="flex justify-between pt-1"><span class="text-slate-600">Avg:</span><span class="font-medium">{{ getStatistics('weightedAvgDifference').avg }} ns</span></div>
+            </div>
+             <div *ngIf="filteredData.length === 0" class="text-slate-500">No data for statistics.</div>
         </div>
-        <div class="flex items-center">
-          <span class="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-          <span>Time difference > 50 ns</span>
+      </div>
+
+      <!-- TDEV Analysis Section -->
+      <div *ngIf="showTdevAnalysis" class="mt-6 p-4 border-t">
+        <h3 class="text-lg font-semibold text-center mb-4">Time Deviation (TDEV) Analysis</h3>
+        <div *ngIf="tdevChartData && tdevChartData.datasets && tdevChartData.datasets.length > 0 && isBrowser" class="h-96">
+            <canvas baseChart [data]="tdevChartData" [options]="tdevChartOptions" [type]="'line'"></canvas>
+        </div>
+        <div *ngIf="!tdevChartData || !tdevChartData.datasets || tdevChartData.datasets.length === 0" class="text-center py-12 text-gray-500">
+          <p>TDEV analysis could not be completed for the current selection.</p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Time Deviation Analysis Section -->
-  <div *ngIf="showTdevAnalysis && tdevChartData && !isLoading && isBrowser" class="mb-6">
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Time Deviation (TDEV) Analysis</h3>
-        <button 
-          (click)="downloadTdevCSV()"
-          class="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 text-sm">
-          Download TDEV & MDEV in CSV
-        </button>
-      </div>
-      
-      <div class="h-96">
-        <canvas baseChart
-                [data]="tdevChartData"
-                [options]="tdevChartOptions"
-                [type]="'line'">
-        </canvas>
-      </div>
-
-      <!-- TDEV Information -->
-      <div class="mt-4 p-4 bg-blue-50 rounded-lg">
-        <h4 class="font-medium mb-2">About Time Deviation (TDEV) - All Receivers Analysis</h4>
-        <p class="text-sm text-gray-700 mb-2">
-          Time Deviation (TDEV) and Modified Allan Deviation (MDEV) are measures of frequency stability that characterize 
-          the time error accumulated over different averaging intervals. This analysis shows individual TDEV/MDEV calculations 
-          for each receiver at {{ dataIdentifier | titlecase }}, calculated using Common View Difference data from each receiver separately.
-        </p>
-        <p class="text-sm text-gray-700 mb-2">
-          <strong>Formula:</strong> TDEV(τ) = τ × MDEV(τ) / √3 <br>
-          <strong>Data Source:</strong> CV Difference values for each receiver individually <br>
-          <strong>Visualization:</strong> Dashed lines = MDEV, Solid lines = TDEV
-        </p>
-        <p class="text-sm text-gray-600">
-          Each receiver is plotted with a consistent color scheme matching the main plot view.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- No Data Message -->
-  <div *ngIf="!plotChartData && !isLoading && filteredData.length === 0" 
-       class="text-center py-12 text-gray-500">
-    <p>No data available for the selected filters.</p>
-    <p class="text-sm mt-2">Try adjusting the filter criteria or date range.</p>
   </div>
 </div>
+

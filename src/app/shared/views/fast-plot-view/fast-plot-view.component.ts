@@ -40,8 +40,11 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   chartData: any;
   chartOptions: any;
 
-  // State for the plot type toggle
-  plotType: 'avgRefsysDifference' | 'weightedAvgDifference' = 'avgRefsysDifference';
+  // State for the plot view selection
+  plotView = {
+    standard: true,
+    weighted: false
+  };
 
   // Properties for date inputs
   startDate: string;
@@ -127,9 +130,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       })
     ).subscribe({
       next: (response) => {
-        // Cast the response to the updated interface
         this.filteredData = response.content.reverse() as SatData[];
-        console.log(`✅ Plot data pipeline loaded ${this.filteredData.length} records`);
         this.updateChartData();
         this.loading = false;
       },
@@ -168,9 +169,24 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     }
   }
 
-  // New method to handle plot type toggle
-  public onPlotTypeChange(): void {
+  public setPlotView(view: 'standard' | 'weighted' | 'both'): void {
+    if (view === 'standard') {
+      this.plotView = { standard: true, weighted: false };
+    } else if (view === 'weighted') {
+      this.plotView = { standard: false, weighted: true };
+    } else { // 'both'
+      this.plotView = { standard: true, weighted: true };
+    }
     this.updateChartData();
+  }
+
+  private getDynamicDisplayName(code: string, type: 'standard' | 'weighted'): string {
+    const baseName = getReceiverDisplayName(code);
+    const suffix = type === 'standard' ? '_CV' : '_AV';
+    if (baseName.endsWith('_CV')) {
+        return baseName.slice(0, -3) + suffix;
+    }
+    return baseName + suffix;
   }
 
   private updateChartData(): void {
@@ -180,6 +196,7 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     }
 
     const dataToPlot = this.filteredData;
+    const datasets: any[] = [];
 
     const source2Groups: { [key: string]: SatData[] } = {};
     dataToPlot.forEach(item => {
@@ -188,33 +205,59 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
       }
       source2Groups[item.source2].push(item);
     });
+    
+    Object.keys(source2Groups).forEach(source2 => {
+      const source2Data = source2Groups[source2];
+      
+      const baseDatasetOptions = {
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: false,
+        tension: 0.3,
+        spanGaps: true,
+      };
+
+      if (this.plotView.standard) {
+        const color = this.getColorForSource2(source2);
+        datasets.push({
+          ...baseDatasetOptions,
+          label: this.getDynamicDisplayName(source2, 'standard'),
+          data: dataToPlot.map(labelItem => {
+            const point = source2Data.find(d => d.mjdDateTime === labelItem.mjdDateTime);
+            return point ? point.avgRefsysDifference : null;
+          }),
+          borderColor: color,
+          pointBorderColor: color,
+          pointBackgroundColor: color,
+          backgroundColor: color + '20',
+        });
+      }
+      
+      if (this.plotView.weighted) {
+        // When showing both, get a different color for the weighted line to distinguish it.
+        const color = (this.plotView.standard) 
+            ? this.getModifiedColor(this.getColorForSource2(source2)) 
+            : this.getColorForSource2(source2);
+
+        datasets.push({
+          ...baseDatasetOptions,
+          label: this.getDynamicDisplayName(source2, 'weighted'),
+          data: dataToPlot.map(labelItem => {
+            const point = source2Data.find(d => d.mjdDateTime === labelItem.mjdDateTime);
+            return point ? point.weightedAvgDifference : null;
+          }),
+          borderColor: color,
+          borderDash: [5, 5], // Dashed line for weighted view
+          pointBorderColor: color,
+          pointBackgroundColor: color,
+          backgroundColor: color + '20',
+        });
+      }
+    });
 
     this.chartData = {
       labels: dataToPlot.map(d => new Date(d.mjdDateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })),
-      datasets: Object.keys(source2Groups).map(source2 => {
-        const source2Data = source2Groups[source2];
-        const color = this.getColorForSource2(source2);
-        
-        // Dynamically select the data point based on plotType
-        const dataPoints = dataToPlot.map(labelItem => {
-          const matchingPoint = source2Data.find(dataItem => dataItem.mjdDateTime === labelItem.mjdDateTime);
-          return matchingPoint ? matchingPoint[this.plotType] : null;
-        });
-
-        return {
-          label: getReceiverDisplayName(source2),
-          data: dataPoints,
-          borderColor: color,
-          backgroundColor: color + '20',
-          pointBorderColor: color,
-          pointBackgroundColor: color,
-          pointRadius: 3,
-          pointHoverRadius: 5,
-          fill: false,
-          tension: 0.3,
-          spanGaps: true,
-        };
-      })
+      datasets: datasets
     };
 
     this.chartOptions = {
@@ -232,37 +275,15 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
         }
       },
       scales: {
-        x: {
-          display: true,
-          title: {
-            display: true,
-            text: 'Time (Indian Standard Time)',
-          },
-        },
-        y: {
-          display: true,
-          title: {
-            display: true,
-            // Dynamically set the Y-axis title
-            text: this.plotType === 'avgRefsysDifference' ? 'Time Difference (ns)' : 'Weighted Time Difference (ns)',
-          },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.1)',
-          },
-        },
+        x: { display: true, title: { display: true, text: 'Time (Indian Standard Time)' } },
+        y: { display: true, title: { display: true, text: 'Time Difference (ns)' }, grid: { color: 'rgba(0, 0, 0, 0.1)' } },
       },
-      interaction: {
-        mode: 'index' as const,
-        intersect: false,
-      },
+      interaction: { mode: 'index' as const, intersect: false },
     };
   }
   
   private getColorForSource2(source2: string): string {
-    // ... (this method remains the same)
-    const currentLocationSources = this.dataIdentifier 
-      ? locationSource2Map[this.dataIdentifier] ?? []
-      : [];
+    const currentLocationSources = this.dataIdentifier ? locationSource2Map[this.dataIdentifier] ?? [] : [];
     const sourceIndex = currentLocationSources.indexOf(source2);
     const consistentColors = [
       '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6B7280', 
@@ -278,9 +299,33 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     const hue = Math.abs(hash) % 360;
     return `hsl(${hue}, 70%, 50%)`;
   }
+  
+  /**
+   * Generates a visually distinct but related color for the weighted average line.
+   */
+  private getModifiedColor(color: string): string {
+    // If it's a HSL color, slightly change the hue and lightness
+    if (color.startsWith('hsl')) {
+      try {
+        const parts = color.match(/\d+/g);
+        if (parts && parts.length === 3) {
+          const hue = (parseInt(parts[0], 10) + 40) % 360; // Shift hue
+          const saturation = parseInt(parts[1], 10);
+          const lightness = Math.min(100, parseInt(parts[2], 10) + 15); // Make it lighter
+          return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+      } catch (e) { /* Fallback below */ }
+    }
+    
+    // If it's a hex color from the consistent list, create a derived color
+    // This is a simple but effective way to generate a secondary color
+    const hash = color.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+    const hue = Math.abs(hash) % 360;
+    return `hsl(${hue}, 80%, 70%)`;
+  }
+
 
   public getPlotTitle(): string {
-    // ... (this method remains the same)
     if (!this.dataIdentifier) {
       return 'Common-View Time Transfer Performance';
     }
@@ -289,9 +334,9 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     return `Common-View Time Transfer Performance between NPLI and ${locationName} (${locationAbbr})`;
   }
 
-  getStatistics(field: 'avg1' | 'avg2' | 'avgRefsysDifference' | 'weightedAvgDifference'): { min: number; max: number; avg: number } {
+  getStatistics(field: 'avgRefsysDifference' | 'weightedAvgDifference'): { min: number; max: number; avg: number } {
     if (this.filteredData.length === 0) return { min: 0, max: 0, avg: 0 };
-    const values = this.filteredData.map(item => item[field as keyof SatData]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
+    const values = this.filteredData.map(item => item[field]).filter(val => typeof val === 'number' && !isNaN(val)) as number[];
     if (values.length === 0) return { min: 0, max: 0, avg: 0 };
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -300,7 +345,6 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
   }
 
   public downloadPlot(): void {
-    // ... (this method remains the same)
     if (!this.chart?.chart) return;
     const chartCanvas = this.chart.chart.canvas;
     const tempCanvas = document.createElement('canvas');
@@ -317,3 +361,4 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     link.click();
   }
 }
+

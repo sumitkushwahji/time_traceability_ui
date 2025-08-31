@@ -49,22 +49,20 @@
             </div>
         </div>
         
-        <!-- NEW: Plot Type Toggle Switch -->
-        <div class="flex items-center gap-2 rounded-lg bg-slate-100 p-1 text-sm">
-            <button
-                (click)="plotType = 'avgRefsysDifference'; onPlotTypeChange()"
-                [ngClass]="{'bg-white shadow rounded-md text-blue-600': plotType === 'avgRefsysDifference', 'text-slate-600': plotType !== 'avgRefsysDifference'}"
-                class="px-3 py-1 font-medium transition-all duration-200"
-            >
-                Standard View
-            </button>
-            <button
-                (click)="plotType = 'weightedAvgDifference'; onPlotTypeChange()"
-                [ngClass]="{'bg-white shadow rounded-md text-blue-600': plotType === 'weightedAvgDifference', 'text-slate-600': plotType !== 'weightedAvgDifference'}"
-                class="px-3 py-1 font-medium transition-all duration-200"
-            >
-                Weighted View
-            </button>
+        <!-- Plot View Selection -->
+        <div class="flex items-center gap-4 rounded-lg bg-slate-100 p-1 text-sm">
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('standard')" [checked]="plotView.standard && !plotView.weighted">
+                Standard
+            </label>
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('weighted')" [checked]="!plotView.standard && plotView.weighted">
+                Weighted
+            </label>
+            <label class="flex items-center gap-2 px-3 py-1 cursor-pointer">
+                <input type="radio" name="plotView" (change)="setPlotView('both')" [checked]="plotView.standard && plotView.weighted">
+                Both
+            </label>
         </div>
         
         <!-- Data Summary -->
@@ -98,6 +96,53 @@
           </div>
         </div>
       </div>
+
+      <!-- Statistics Panel -->
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div *ngIf="plotView.standard" class="bg-slate-50 p-3 rounded-lg border">
+            <h3 class="font-semibold text-slate-700 mb-2">Statistics (Standard View)</h3>
+            <div *ngIf="filteredData.length > 0">
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-slate-600">Min Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('avgRefsysDifference').min }} ns</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-slate-600">Max Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('avgRefsysDifference').max }} ns</span>
+                </div>
+                <div class="flex justify-between pt-1">
+                    <span class="text-slate-600">Average Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('avgRefsysDifference').avg }} ns</span>
+                </div>
+            </div>
+            <div *ngIf="filteredData.length === 0" class="text-slate-500">
+                No data to calculate statistics.
+            </div>
+        </div>
+
+        <div *ngIf="plotView.weighted" class="bg-slate-50 p-3 rounded-lg border">
+            <h3 class="font-semibold text-slate-700 mb-2">Statistics (Weighted View)</h3>
+            <div *ngIf="filteredData.length > 0">
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-slate-600">Min Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('weightedAvgDifference').min }} ns</span>
+                </div>
+                <div class="flex justify-between py-1 border-b">
+                    <span class="text-slate-600">Max Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('weightedAvgDifference').max }} ns</span>
+                </div>
+                <div class="flex justify-between pt-1">
+                    <span class="text-slate-600">Average Difference:</span>
+                    <span class="font-medium text-slate-800">{{ getStatistics('weightedAvgDifference').avg }} ns</span>
+                </div>
+            </div>
+            <div *ngIf="filteredData.length === 0" class="text-slate-500">
+                No data to calculate statistics.
+            </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
+
