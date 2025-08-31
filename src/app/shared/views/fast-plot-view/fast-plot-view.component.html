@@ -14,14 +14,18 @@
       </button>
     </div>
 
+    <!-- Loading indicator -->
     <div *ngIf="loading" class="flex justify-center items-center py-8">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
       <span class="ml-2 text-gray-600">Loading data...</span>
     </div>
 
+    <!-- Main content when not loading -->
     <div *ngIf="!loading">
+      <!-- Controls -->
       <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
         
+        <!-- Date Range Pickers -->
         <div class="flex items-center gap-4 text-sm">
             <div class="flex items-center gap-2">
                 <label for="startDate" class="font-medium text-slate-600">Start Date:</label>
@@ -45,6 +49,25 @@
             </div>
         </div>
         
+        <!-- NEW: Plot Type Toggle Switch -->
+        <div class="flex items-center gap-2 rounded-lg bg-slate-100 p-1 text-sm">
+            <button
+                (click)="plotType = 'avgRefsysDifference'; onPlotTypeChange()"
+                [ngClass]="{'bg-white shadow rounded-md text-blue-600': plotType === 'avgRefsysDifference', 'text-slate-600': plotType !== 'avgRefsysDifference'}"
+                class="px-3 py-1 font-medium transition-all duration-200"
+            >
+                Standard View
+            </button>
+            <button
+                (click)="plotType = 'weightedAvgDifference'; onPlotTypeChange()"
+                [ngClass]="{'bg-white shadow rounded-md text-blue-600': plotType === 'weightedAvgDifference', 'text-slate-600': plotType !== 'weightedAvgDifference'}"
+                class="px-3 py-1 font-medium transition-all duration-200"
+            >
+                Weighted View
+            </button>
+        </div>
+        
+        <!-- Data Summary -->
         <div class="text-sm text-gray-600">
           <span class="font-medium">{{ filteredData.length }}</span> data points
           <span *ngIf="selectedFilter !== 'ALL'" class="text-blue-600 ml-1">
@@ -53,6 +76,7 @@
         </div>
       </div>
 
+      <!-- Chart Container -->
       <div class="bg-gray-50 rounded-lg p-4" style="height: 500px;">
         <canvas 
           *ngIf="chartData && filteredData.length > 0"
@@ -63,7 +87,8 @@
           class="w-full h-full"
         ></canvas>
         
-        <div *ngIf="filteredData.length === 0" class="flex items-center justify-center h-full text-gray-500">
+        <!-- Empty state -->
+        <div *ngIf="!loading && filteredData.length === 0" class="flex items-center justify-center h-full text-gray-500">
           <div class="text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

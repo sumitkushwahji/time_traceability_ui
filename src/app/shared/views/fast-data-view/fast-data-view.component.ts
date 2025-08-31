@@ -20,6 +20,10 @@ interface SatData {
   avg1: number;
   avg2: number;
   avgRefsysDifference: number;
+  // New fields from the combined materialized view
+  weightedAvg1: number;
+  weightedAvg2: number;
+  weightedAvgDifference: number;
 }
 
 @Component({
@@ -80,7 +84,6 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
     });
 
     // Handle date range changes, but skip the initial value from the service.
-    // This is the key fix to ignore the "last day" default set by the plot component.
     this.dateRangeService.dateRange$.pipe(
       skip(1), // Ignore the first emission
       takeUntil(this.destroy$)
@@ -127,7 +130,8 @@ export class FastDataViewComponent implements OnInit, OnDestroy {
       this.selectedFilter !== 'ALL' ? this.selectedFilter : null
     ).subscribe({
       next: (response) => {
-        this.displayedData = response.content;
+        // FIX: Cast the response content to the local SatData interface to resolve type mismatch.
+        this.displayedData = response.content as SatData[];
         this.totalItems = response.totalElements;
         this.loading = false;
         console.log(`✅ Loaded page ${this.currentPage} with ${this.displayedData.length} records.`);
