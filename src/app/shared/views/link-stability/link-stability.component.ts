@@ -326,7 +326,21 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
       },
       scales: {
         x: { type: 'logarithmic', title: { display: true, text: 'Averaging Time τ (seconds)' } },
-        y: { type: 'logarithmic', title: { display: true, text: 'Modified Allan Deviation (ns)' } },
+        y: {
+          type: 'logarithmic',
+          title: { display: true, text: 'Modified Allan Deviation (ns)' },
+          ticks: {
+            callback: function(value: any) {
+              // Chart.js passes the tick value as a number
+              if (typeof value === 'number') {
+                return value.toExponential(2);
+              }
+              // If value is a string, try to parse and format
+              const num = Number(value);
+              return isNaN(num) ? value : num.toExponential(2);
+            }
+          }
+        },
       },
     };
   }
