@@ -50,12 +50,14 @@ export class PlotViewComponent implements OnInit, OnDestroy {
     @Inject(PLATFORM_ID) private platformId: Object
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
-    // Default to the last 2 days
-    const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    this.endDate = this.formatDateForInput(now);
-    this.startDate = this.formatDateForInput(twoDaysAgo);
-    this.initializeChartOptions();
+  // Set default end date to yesterday and start date to 5 days before that
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const fiveDaysAgo = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() - 5);
+
+  this.endDate = this.formatDateForInput(yesterday);
+  this.startDate = this.formatDateForInput(fiveDaysAgo);
+  this.initializeChartOptions();
   }
 
   ngOnInit(): void {

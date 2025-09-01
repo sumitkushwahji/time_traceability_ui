@@ -71,12 +71,13 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
     private dateRangeService: DateRangeService,
     private route: ActivatedRoute
   ) {
-  // Initialize date properties to the last 48 hours
-  const now = new Date();
-  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-    
-  this.endDate = this.formatDateForInput(now);
-  this.startDate = this.formatDateForInput(twoDaysAgo);
+  // Set default end date to yesterday and start date to 5 days before that
+  const today = new Date();
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const fiveDaysAgo = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate() - 5);
+
+  this.endDate = this.formatDateForInput(yesterday);
+  this.startDate = this.formatDateForInput(fiveDaysAgo);
   }
 
   ngOnInit(): void {
