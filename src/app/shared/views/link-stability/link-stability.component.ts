@@ -179,7 +179,7 @@ export class LinkStabilityComponent implements OnInit, OnDestroy {
   mdevChartOptions: any;
 
   // View Controls
-  plotView = { standard: true, weighted: true };
+  plotView = { standard: true, weighted: false };
   startDate: string;
   endDate: string;
 

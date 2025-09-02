@@ -42,8 +42,8 @@ export class FastPlotViewComponent implements OnInit, OnDestroy {
 
   // State for the plot view selection
   plotView = {
-    standard: true,
-    weighted: true
+  standard: true,
+  weighted: false
   };
 
   // Properties for date inputs
