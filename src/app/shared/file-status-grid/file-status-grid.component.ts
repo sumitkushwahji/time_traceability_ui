@@ -2,11 +2,13 @@ import { Component, OnInit, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FileStatus, SatDataService } from '../../services/sat-data.service';
+import { getReceiverDisplayName } from '../receiver-display-name.map';
 
 
 interface Location {
   displayName: string;
   sourceName: string;
+  systemType?: 'GPS' | 'NavIC'; // Add system type for grouping
 }
 
 interface StatusDisplay {
@@ -23,7 +25,7 @@ interface StatusDisplay {
   styleUrls: ['./file-status-grid.component.css']
 })
 export class FileStatusGridComponent implements OnInit {
-  @Input() system: 'GPS' | 'NavIC' = 'NavIC';
+  @Input() system: 'GPS' | 'NavIC' | 'Both' = 'NavIC';
 
   isLoading = false;
   displayedDates: Date[] = [];
@@ -34,31 +36,88 @@ export class FileStatusGridComponent implements OnInit {
   private baseDate = new Date();
   private mjdEpoch = new Date('1858-11-17T00:00:00Z');
 
-  // Define location mappings
-  private readonly locationMap = {
+  // System options for toggle
+  systemOptions: ('GPS' | 'NavIC' | 'Both')[] = ['NavIC', 'GPS', 'Both'];
+
+  // Define receiver codes for each system
+  private readonly receiverCodes = {
     NavIC: [
-        { displayName: 'Bangalore RX1', sourceName: 'IRLMB1' },
-        { displayName: 'Bangalore RX2', sourceName: 'IRLMB2' },
-        { displayName: 'Faridabad Rx1', sourceName: 'IRLMF1' },
-        { displayName: 'Faridabad Rx2', sourceName: 'IRLMF2' },
-        { displayName: 'Ahmadabad Rx1', sourceName: 'IRLMA1' },
-        { displayName: 'Ahmadabad Rx2', sourceName: 'IRLMA2' },
-        // ... add all other NavIC locations here
+      'IRNPLI', 'IRLMB1', 'IRLMB2', 'IRLMA1', 'IRLMA2', 
+      'IRLMF1', 'IRLMF2', 'IRLMO1', 'IRLMO2', 'IRLMG1', 
+      'IRLMG2', 'IRDRC1', 'IRDRC2'
     ],
     GPS: [
-        { displayName: 'Bangalore RX1', sourceName: 'GZLMB1' },
-        { displayName: 'Bangalore RX2', sourceName: 'GZLMB2' },
-        { displayName: 'Faridabad Rx1', sourceName: 'GZLMF1' },
-        { displayName: 'Faridabad Rx2', sourceName: 'GZLMF2' },
-        // ... add all other GPS locations here
+      'GZLI2P', 'GZLMB1', 'GZLMB2', 'GZLMA1', 'GZLMA2',
+      'GZLMF1', 'GZLMF2', 'GZLMO1', 'GZLMO2', 'GZLMG1',
+      'GZLMG2', 'GZDRC1', 'GZDRC2'
     ]
   };
 
   constructor(private satDataService: SatDataService) {}
 
   ngOnInit(): void {
-    this.locations = this.locationMap[this.system];
+    this.updateLocations();
     this.goToLatestDays();
+  }
+
+  updateLocations(): void {
+    // Generate locations dynamically using the receiver display name mapping
+    if (this.system === 'Both') {
+      const navicLocations = this.receiverCodes.NavIC.map((code: string) => ({
+        displayName: getReceiverDisplayName(code),
+        sourceName: code,
+        systemType: 'NavIC' as const
+      }));
+      const gpsLocations = this.receiverCodes.GPS.map((code: string) => ({
+        displayName: getReceiverDisplayName(code),
+        sourceName: code,
+        systemType: 'GPS' as const
+      }));
+      // Group NavIC first, then GPS
+      this.locations = [...navicLocations, ...gpsLocations];
+    } else {
+      this.locations = this.receiverCodes[this.system].map((code: string) => ({
+        displayName: getReceiverDisplayName(code),
+        sourceName: code,
+        systemType: this.system as 'GPS' | 'NavIC'
+      }));
+    }
+  }
+
+  onSystemChange(newSystem: 'GPS' | 'NavIC' | 'Both'): void {
+    this.system = newSystem;
+    this.updateLocations();
+    this.fetchStatuses();
+  }
+
+  // Helper method to group locations by system type for display
+  getGroupedLocations(): { systemType: string; locations: Location[] }[] {
+    if (this.system !== 'Both') {
+      return [{ systemType: this.system, locations: this.locations }];
+    }
+    
+    const grouped = this.locations.reduce((acc, location) => {
+      const systemType = location.systemType || 'Unknown';
+      if (!acc[systemType]) {
+        acc[systemType] = [];
+      }
+      acc[systemType].push(location);
+      return acc;
+    }, {} as { [key: string]: Location[] });
+
+    // Return in specific order: NavIC first, then GPS
+    const orderedSystems = ['NavIC', 'GPS'];
+    return orderedSystems
+      .filter(system => grouped[system])
+      .map(systemType => ({
+        systemType,
+        locations: grouped[systemType]
+      }));
+  }
+
+  // Helper method to get total location count for display
+  getTotalLocationCount(): number {
+    return this.locations.length;
   }
 
   fetchStatuses(): void {

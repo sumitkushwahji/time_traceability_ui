@@ -1,7 +1,23 @@
 <div class="bg-white rounded-2xl shadow-lg p-4 overflow-auto">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-        <h2 class.text-xl font-semibold>{{ system }} file exchange status</h2>
+        <div class="flex flex-col sm:flex-row items-center gap-4 mb-2 sm:mb-0">
+            <h2 class="text-xl font-semibold">
+                {{ system === 'Both' ? 'GPS & NavIC' : system }} file exchange status
+            </h2>
+            
+            <!-- System Toggle Buttons -->
+            <div class="flex bg-gray-100 rounded-lg p-1">
+                <button 
+                    *ngFor="let option of systemOptions" 
+                    (click)="onSystemChange(option)"
+                    [class]="'px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ' + 
+                            (system === option ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200')">
+                    {{ option }}
+                </button>
+            </div>
+        </div>
+        
         <div class="flex items-center gap-2 text-sm font-medium">
             <span class="hidden sm:inline">Date filter based on weeks</span>
             <button (click)="navigateDays(7)" class="p-2 rounded hover:bg-slate-100">&lt; Next 7 days</button>
@@ -22,12 +38,39 @@
                 </tr>
             </thead>
             <tbody *ngIf="!isLoading">
-                <tr *ngFor="let loc of locations" class="border-b last:border-b-0">
-                    <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap">{{ loc.displayName }}</td>
-                    <td *ngFor="let date of displayedDates" [ngClass]="getDisplayData(loc, date).cssClass" class="p-3">
-                        {{ getDisplayData(loc, date).text }}
-                    </td>
-                </tr>
+                <!-- Show grouped display when Both is selected -->
+                <ng-container *ngIf="system === 'Both'">
+                    <ng-container *ngFor="let group of getGroupedLocations()">
+                        <!-- System Group Header -->
+                        <tr class="bg-gray-50 border-b">
+                            <td class="p-2 sticky left-0 bg-gray-50 z-10 text-left font-bold text-gray-700 text-sm">
+                                {{ group.systemType }} System
+                            </td>
+                            <td *ngFor="let date of displayedDates" class="p-2 bg-gray-50"></td>
+                        </tr>
+                        <!-- Locations for this system -->
+                        <tr *ngFor="let loc of group.locations" class="border-b last:border-b-0">
+                            <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap pl-6">
+                                {{ loc.displayName }}
+                            </td>
+                            <td *ngFor="let date of displayedDates" [ngClass]="getDisplayData(loc, date).cssClass" class="p-3">
+                                {{ getDisplayData(loc, date).text }}
+                            </td>
+                        </tr>
+                    </ng-container>
+                </ng-container>
+                
+                <!-- Show normal display when single system is selected -->
+                <ng-container *ngIf="system !== 'Both'">
+                    <tr *ngFor="let loc of locations" class="border-b last:border-b-0">
+                        <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap">
+                            {{ loc.displayName }}
+                        </td>
+                        <td *ngFor="let date of displayedDates" [ngClass]="getDisplayData(loc, date).cssClass" class="p-3">
+                            {{ getDisplayData(loc, date).text }}
+                        </td>
+                    </tr>
+                </ng-container>
             </tbody>
         </table>
 
@@ -40,8 +83,5 @@
         </div>
     </div>
 
-    <!-- Legend -->
-    <div class="mt-4 text-xs text-gray-600">
-      <p><strong>Note:</strong> If file received then there should be time stamp in that. If file not received till 24 hrs (day change) then it should be red & empty.</p>
-    </div>
+   
 </div>
