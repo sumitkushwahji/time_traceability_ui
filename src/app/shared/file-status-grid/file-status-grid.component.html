@@ -1,0 +1,47 @@
+<div class="bg-white rounded-2xl shadow-lg p-4 overflow-auto">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+        <h2 class.text-xl font-semibold>{{ system }} file exchange status</h2>
+        <div class="flex items-center gap-2 text-sm font-medium">
+            <span class="hidden sm:inline">Date filter based on weeks</span>
+            <button (click)="navigateDays(7)" class="p-2 rounded hover:bg-slate-100">&lt; Next 7 days</button>
+            <button (click)="goToLatestDays()" class="px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700">7 latest days</button>
+            <button (click)="navigateDays(-7)" class="p-2 rounded hover:bg-slate-100">Previous 7 days &gt;</button>
+        </div>
+    </div>
+
+    <!-- Status Grid -->
+    <div class="overflow-x-auto rounded-lg border">
+        <table class="min-w-full text-sm text-center">
+            <thead class="bg-blue-800 text-white">
+                <tr>
+                    <th class="p-3 sticky left-0 bg-blue-800 z-10 text-left">Location</th>
+                    <th *ngFor="let date of displayedDates" class="p-3 font-semibold whitespace-nowrap">
+                        {{ date | date: 'dd.MM.yyyy' }}
+                    </th>
+                </tr>
+            </thead>
+            <tbody *ngIf="!isLoading">
+                <tr *ngFor="let loc of locations" class="border-b last:border-b-0">
+                    <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap">{{ loc.displayName }}</td>
+                    <td *ngFor="let date of displayedDates" [ngClass]="getDisplayData(loc, date).cssClass" class="p-3">
+                        {{ getDisplayData(loc, date).text }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Loading Skeleton -->
+        <div *ngIf="isLoading" class="p-4">
+            <div *ngFor="let i of [1,2,3,4,5]" class="flex items-center space-x-4 mb-3 animate-pulse">
+                <div class="h-6 bg-slate-200 rounded w-1/4"></div>
+                <div class="h-6 bg-slate-200 rounded w-3/4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="mt-4 text-xs text-gray-600">
+      <p><strong>Note:</strong> If file received then there should be time stamp in that. If file not received till 24 hrs (day change) then it should be red & empty.</p>
+    </div>
+</div>

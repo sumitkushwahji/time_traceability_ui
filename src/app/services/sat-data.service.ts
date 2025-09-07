@@ -38,6 +38,15 @@ export interface SatPivotedData {
   locationDiffs: { [key: string]: number };
 }
 
+// Interface for the file status data returned by the new endpoint
+export interface FileStatus {
+  source: string;
+  mjd: number;
+  status: 'AVAILABLE' | 'MISSING' | 'WAITING'; // The possible statuses
+  fileName: string;
+  lastUpdated: string; // The timestamp from the backend
+}
+
 // Define the structure of the paginated API response
 export interface PivotedDataResponse {
   content: SatPivotedData[];
@@ -48,7 +57,8 @@ export interface PivotedDataResponse {
   providedIn: 'root',
 })
 export class SatDataService {
-
+  private readonly baseUrl = `${environment.apiBaseUrl}/data/sat-differences`;
+  private readonly baseUrl4 = `${environment.apiBaseUrl}/status/file-availability`;
   private readonly baseUrl2 = `${environment.apiBaseUrl}/data`; // Often used for common base URL
  
  
@@ -74,6 +84,35 @@ export class SatDataService {
       console.error(`${operation} failed:`, error);
       return of(result as T);
     };
+  }
+
+
+
+  /**
+   * Fetches the file availability statuses for a given set of sources and a date range.
+   * This method is called by the FileStatusGridComponent.
+   *
+   * @param sources An array of source names (e.g., ['IRLMB1', 'IRLMB2']).
+   * @param startDate The start of the date range in 'yyyy-MM-dd' format.
+   * @param endDate The end of the date range in 'yyyy-MM-dd' format.
+   * @returns An Observable array of FileStatus objects.
+   */
+  getFileStatuses(sources: string[], startDate: string, endDate: string): Observable<FileStatus[]> {
+    const url = `${this.baseUrl4}`;
+
+    let params = new HttpParams()
+      .set('startDate', startDate)
+      .set('endDate', endDate);
+    
+    // Append each source to the HttpParams. This creates a query like:
+    // ?sources=IRLMB1&sources=IRLMB2...
+    sources.forEach(source => {
+      params = params.append('sources', source);
+    });
+
+    return this.http.get<FileStatus[]>(url, { params }).pipe(
+      catchError(this.handleError<FileStatus[]>('getFileStatuses', []))
+    );
   }
 
   // --- NEW METHOD FOR PIVOTED DATA VIEW ---
