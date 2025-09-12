@@ -22,7 +22,7 @@ bash
 Copy
 Edit
 ng generate module faridabad --routing
-📁 This creates:
+📁 This creates::
 
 cpp
 Copy
