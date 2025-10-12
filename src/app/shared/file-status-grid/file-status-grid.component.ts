@@ -176,6 +176,20 @@ export class FileStatusGridComponent implements OnInit {
     const key = `${location.sourceName}-${mjd}`;
     const status = this.statusMap.get(key);
     
+    // For today's date, check if current time is before expected time
+    if (dateStart.getTime() === todayStart.getTime()) {
+      const expectedHour = this.getExpectedHourForLocation(location);
+      const currentHour = now.getHours();
+      
+      if (currentHour < expectedHour) {
+        return { 
+          text: 'Waiting', 
+          timestamp: `Expected at ${expectedHour}:00`,
+          cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+        };
+      }
+    }
+
     // Handle existing files
     if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
       try {
@@ -183,21 +197,6 @@ export class FileStatusGridComponent implements OnInit {
         
         if (!isNaN(creationTime.getTime())) {
           const timeStr = this.formatDateTime(creationTime);
-          
-          // For today's date, check if it's before expected time
-          if (dateStart.getTime() === todayStart.getTime()) {
-            const expectedHour = this.getExpectedHourForLocation(location);
-            const currentHour = creationTime.getHours();
-            
-            if (currentHour < expectedHour) {
-              return { 
-                text: 'Waiting', 
-                timestamp: `Expected at ${expectedHour}:00`,
-                cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
-              };
-            }
-          }
-          
           return {
             text: timeStr,
             timestamp: `File Time: ${timeStr}`,
@@ -209,23 +208,23 @@ export class FileStatusGridComponent implements OnInit {
       }
     }
     
-    // Handle today's files that haven't arrived yet
-    if (dateStart.getTime() === todayStart.getTime()) {
-      const expectedHour = this.getExpectedHourForLocation(location);
-      return { 
-        text: 'Waiting', 
-        timestamp: `Expected at ${expectedHour}:00`,
-        cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
-      };
-    }
-    
     // Handle missing past files
     if (dateStart < todayStart) {
       return { text: '', cssClass: 'bg-red-200' };
     }
     
     // Handle future dates
-    return { text: '-', cssClass: 'bg-gray-100 text-gray-400' };
+    if (dateStart > todayStart) {
+      return { text: '-', cssClass: 'bg-gray-100 text-gray-400' };
+    }
+    
+    // Default to waiting for today's files that haven't arrived yet
+    const expectedHour = this.getExpectedHourForLocation(location);
+    return { 
+      text: 'Waiting', 
+      timestamp: `Expected at ${expectedHour}:00`,
+      cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+    };
   }
 
   private getExpectedHourForLocation(location: Location): number {
