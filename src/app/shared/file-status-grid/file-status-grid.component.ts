@@ -155,18 +155,25 @@ export class FileStatusGridComponent implements OnInit {
     this.updateDateRange();
   }
   
-  private readonly timeFormat: Intl.DateTimeFormatOptions = {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Kolkata'
-  };
+  private formatDateTime(utcDateStr: string): string {
+    try {
+      // Parse UTC date string
+      const utcDate = new Date(utcDateStr);
+      if (isNaN(utcDate.getTime())) {
+        throw new Error('Invalid date');
+      }
 
-  private formatDateTime(date: Date): string {
-    // Ensure date is treated as UTC and then converted to Indian time
-    const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-    return utcDate.toLocaleTimeString('en-IN', this.timeFormat);
+      // Convert UTC to IST (UTC+5:30)
+      const istTime = new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
+      
+      // Format in 24-hour time
+      return `${istTime.getUTCHours().toString().padStart(2, '0')}:${
+        istTime.getUTCMinutes().toString().padStart(2, '0')}:${
+        istTime.getUTCSeconds().toString().padStart(2, '0')}`;
+    } catch (error) {
+      console.error('Error parsing date:', error, utcDateStr);
+      return utcDateStr;
+    }
   }
 
   getDisplayData(location: Location, date: Date): StatusDisplay {
@@ -181,33 +188,32 @@ export class FileStatusGridComponent implements OnInit {
     // Handle existing files
     if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
       try {
-        const creationTime = new Date(status.fileCreationTime);
+        // Convert UTC creation time to IST for comparison
+        const timeStr = this.formatDateTime(status.fileCreationTime);
+        const creationTimeUTC = new Date(status.fileCreationTime);
+        const creationTimeIST = new Date(creationTimeUTC.getTime() + (5.5 * 60 * 60 * 1000));
         
-        if (!isNaN(creationTime.getTime())) {
-          const timeStr = this.formatDateTime(creationTime);
+        // For today's date, check if it's the expected file
+        if (dateStart.getTime() === todayStart.getTime()) {
+          const expectedHour = this.getExpectedHourForLocation(location);
+          const fileHourIST = creationTimeIST.getUTCHours();
+          const currentHourIST = (now.getHours() + 5 + (now.getMinutes() >= 30 ? 1 : 0)) % 24;
 
-          // For today's date, check if it's the expected file
-          if (dateStart.getTime() === todayStart.getTime()) {
-            const expectedHour = this.getExpectedHourForLocation(location);
-            const fileHour = creationTime.getHours();
-            const currentHour = now.getHours();
-
-            // Show 'Waiting' if current hour is before expected hour and file is from previous day
-            if (currentHour < expectedHour && fileHour < expectedHour) {
-              return { 
-                text: 'Waiting', 
-                timestamp: `Expected at ${expectedHour}:00`,
-                cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
-              };
-            }
+          // Show 'Waiting' if current time is before expected hour (5 AM IST)
+          if (currentHourIST < expectedHour) {
+            return { 
+              text: 'Waiting', 
+              timestamp: `Expected at ${expectedHour}:00`,
+              cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+            };
           }
-
-          return {
-            text: timeStr,
-            timestamp: `File Time: ${timeStr}`,
-            cssClass: 'bg-green-200 text-green-800'
-          };
         }
+
+        return {
+          text: timeStr,
+          timestamp: `File Time: ${timeStr}`,
+          cssClass: 'bg-green-200 text-green-800'
+        };
       } catch (error) {
         console.error('Error parsing dates:', error);
       }
