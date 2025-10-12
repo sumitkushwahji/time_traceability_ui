@@ -57,15 +57,6 @@
                                 {{ getDisplayData(location, date).text }}
                             </td>
                         </tr>
-                        <!-- Locations for this system -->
-                        <tr *ngFor="let loc of group.locations" class="border-b last:border-b-0">
-                            <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap pl-6">
-                                {{ loc.displayName }}
-                            </td>
-                            <td *ngFor="let date of displayedDates" [ngClass]="getDisplayData(loc, date).cssClass" class="p-3">
-                                {{ getDisplayData(loc, date).text }}
-                            </td>
-                        </tr>
                     </ng-container>
                 </ng-container>
                 
