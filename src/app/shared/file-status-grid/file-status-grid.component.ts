@@ -164,7 +164,9 @@ export class FileStatusGridComponent implements OnInit {
   };
 
   private formatDateTime(date: Date): string {
-    return date.toLocaleTimeString('en-IN', this.timeFormat);
+    // Ensure date is treated as UTC and then converted to Indian time
+    const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+    return utcDate.toLocaleTimeString('en-IN', this.timeFormat);
   }
 
   getDisplayData(location: Location, date: Date): StatusDisplay {
@@ -176,6 +178,41 @@ export class FileStatusGridComponent implements OnInit {
     const key = `${location.sourceName}-${mjd}`;
     const status = this.statusMap.get(key);
     
+    // Handle existing files
+    if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
+      try {
+        const creationTime = new Date(status.fileCreationTime);
+        
+        if (!isNaN(creationTime.getTime())) {
+          const timeStr = this.formatDateTime(creationTime);
+
+          // For today's date, check if it's the expected file
+          if (dateStart.getTime() === todayStart.getTime()) {
+            const expectedHour = this.getExpectedHourForLocation(location);
+            const fileHour = creationTime.getHours();
+            const currentHour = now.getHours();
+
+            // Show 'Waiting' if current hour is before expected hour and file is from previous day
+            if (currentHour < expectedHour && fileHour < expectedHour) {
+              return { 
+                text: 'Waiting', 
+                timestamp: `Expected at ${expectedHour}:00`,
+                cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+              };
+            }
+          }
+
+          return {
+            text: timeStr,
+            timestamp: `File Time: ${timeStr}`,
+            cssClass: 'bg-green-200 text-green-800'
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing dates:', error);
+      }
+    }
+
     // For today's date, check if current time is before expected time
     if (dateStart.getTime() === todayStart.getTime()) {
       const expectedHour = this.getExpectedHourForLocation(location);
@@ -187,24 +224,6 @@ export class FileStatusGridComponent implements OnInit {
           timestamp: `Expected at ${expectedHour}:00`,
           cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
         };
-      }
-    }
-
-    // Handle existing files
-    if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
-      try {
-        const creationTime = new Date(status.fileCreationTime);
-        
-        if (!isNaN(creationTime.getTime())) {
-          const timeStr = this.formatDateTime(creationTime);
-          return {
-            text: timeStr,
-            timestamp: `File Time: ${timeStr}`,
-            cssClass: 'bg-green-200 text-green-800'
-          };
-        }
-      } catch (error) {
-        console.error('Error parsing dates:', error);
       }
     }
     
