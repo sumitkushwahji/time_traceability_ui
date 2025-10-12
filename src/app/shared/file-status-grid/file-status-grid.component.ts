@@ -157,6 +157,7 @@ export class FileStatusGridComponent implements OnInit {
   
   private getISTDate(utcDateStr: string): Date {
     const utcDate = new Date(utcDateStr);
+    // Add IST offset (5 hours and 30 minutes)
     return new Date(utcDate.getTime() + (5.5 * 60 * 60 * 1000));
   }
 
@@ -167,28 +168,45 @@ export class FileStatusGridComponent implements OnInit {
         throw new Error('Invalid date');
       }
 
-      return `${istDate.getUTCHours().toString().padStart(2, '0')}:${
-        istDate.getUTCMinutes().toString().padStart(2, '0')}:${
-        istDate.getUTCSeconds().toString().padStart(2, '0')}`;
+      // Format time in IST (using UTC methods since we already added the offset)
+      const hours = istDate.getUTCHours();
+      const minutes = istDate.getUTCMinutes();
+      const seconds = istDate.getUTCSeconds();
+
+      return `${hours.toString().padStart(2, '0')}:${
+             minutes.toString().padStart(2, '0')}:${
+             seconds.toString().padStart(2, '0')}`;
     } catch (error) {
       console.error('Error parsing date:', error, utcDateStr);
       return utcDateStr;
     }
   }
 
+  private getMjdForDate(date: Date): number {
+    // Adjust the date to the previous day for MJD calculation
+    // because files created after UTC midnight (IST 5:30 AM) belong to the previous day
+    const adjustedDate = new Date(date);
+    adjustedDate.setDate(adjustedDate.getDate() - 1);
+    return this.dateToMjd(adjustedDate);
+  }
+
   getDisplayData(location: Location, date: Date): StatusDisplay {
+    // Convert current time to IST
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nowIST = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+    
+    // Get date parts in IST
+    const todayStart = new Date(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), nowIST.getUTCDate());
     const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
-    const mjd = this.dateToMjd(date);
+    // Get MJD for the previous day since files belong to previous day's data
+    const mjd = this.getMjdForDate(date);
     const key = `${location.sourceName}-${mjd}`;
     const status = this.statusMap.get(key);
     
     // Handle existing files
     if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
       try {
-        // Get IST versions of all dates
         const timeStr = this.formatDateTime(status.fileCreationTime);
         const fileTimeIST = this.getISTDate(status.fileCreationTime);
         const nowIST = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
@@ -196,28 +214,22 @@ export class FileStatusGridComponent implements OnInit {
         // For today's date
         if (dateStart.getTime() === todayStart.getTime()) {
           const expectedHour = this.getExpectedHourForLocation(location);
-          const fileHourIST = fileTimeIST.getUTCHours();
           const currentHourIST = nowIST.getUTCHours();
           
-          // If it's before 5 AM IST
+          // Before expected hour (5 AM IST), check file time
           if (currentHourIST < expectedHour) {
-            // Show existing file time if it's from today's early morning (after midnight, before 5 AM)
-            const fileDateIST = fileTimeIST.getUTCDate();
-            const nowDateIST = nowIST.getUTCDate();
+            // Get the date part in IST for comparison
+            const fileDateStr = fileTimeIST.toISOString().split('T')[0];
+            const nowDateStr = nowIST.toISOString().split('T')[0];
             
-            if (fileDateIST === nowDateIST && fileHourIST < expectedHour) {
+            // Show time if file is from today (same IST date)
+            if (fileDateStr === nowDateStr) {
               return {
                 text: timeStr,
                 timestamp: `File Time: ${timeStr}`,
                 cssClass: 'bg-green-200 text-green-800'
               };
             }
-            
-            return { 
-              text: 'Waiting', 
-              timestamp: `Expected at ${expectedHour}:00`,
-              cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
-            };
           }
         }
 
