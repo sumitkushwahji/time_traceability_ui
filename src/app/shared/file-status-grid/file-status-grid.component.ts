@@ -163,8 +163,54 @@ export class FileStatusGridComponent implements OnInit {
     const todayMjd = this.dateToMjd(new Date());
     
     if (status?.status === 'AVAILABLE') {
-        const time = new Date(status.lastUpdated).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-        return { text: time, cssClass: 'bg-green-200 text-green-800' };
+        // Always use fileCreationTime for display
+        if (status.fileCreationTime) {
+            // Parse the ISO string which includes timezone information
+            // Add debug logging
+            console.log('Raw fileCreationTime:', status.fileCreationTime);
+            console.log('Raw lastCheckedTimestamp:', status.lastCheckedTimestamp);
+            
+            let timeStr = 'Invalid Time';
+            let lastCheckedStr = 'Invalid Time';
+            
+            try {
+                const creationTime = new Date(status.fileCreationTime);
+                console.log('Parsed creationTime:', creationTime);
+                
+                if (!isNaN(creationTime.getTime())) {
+                    timeStr = creationTime.toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+                
+                const lastCheckedTime = new Date(status.lastCheckedTimestamp);
+                console.log('Parsed lastCheckedTime:', lastCheckedTime);
+                
+                if (!isNaN(lastCheckedTime.getTime())) {
+                    lastCheckedStr = lastCheckedTime.toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'Asia/Kolkata'
+                    });
+                }
+            } catch (error) {
+                console.error('Error parsing dates:', error);
+                console.error('fileCreationTime:', status.fileCreationTime);
+                console.error('lastCheckedTimestamp:', status.lastCheckedTimestamp);
+            }
+            
+            return { 
+                text: timeStr,
+                timestamp: `Created: ${timeStr}\nLast Checked: ${lastCheckedStr}`,
+                cssClass: 'bg-green-200 text-green-800'
+            };
+        }
+        return { text: 'No Time', cssClass: 'bg-green-200 text-green-800' };
     }
     
     if (mjd === todayMjd) {

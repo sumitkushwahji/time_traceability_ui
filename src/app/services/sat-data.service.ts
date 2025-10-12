@@ -44,7 +44,8 @@ export interface FileStatus {
   mjd: number;
   status: 'AVAILABLE' | 'MISSING' | 'WAITING'; // The possible statuses
   fileName: string;
-  lastUpdated: string; // The timestamp from the backend
+  lastCheckedTimestamp: string; // When the system last checked the file
+  fileCreationTime: string; // The actual file creation time from the filesystem
 }
 
 // Define the structure of the paginated API response

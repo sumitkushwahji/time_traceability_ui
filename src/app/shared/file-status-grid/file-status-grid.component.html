@@ -48,6 +48,15 @@
                             </td>
                             <td *ngFor="let date of displayedDates" class="p-2 bg-gray-50"></td>
                         </tr>
+                        <!-- Location Rows -->
+                        <tr *ngFor="let location of group.locations" class="border-b hover:bg-gray-50">
+                            <td class="p-2 sticky left-0 bg-white z-10 text-left">{{ location.displayName }}</td>
+                            <td *ngFor="let date of displayedDates" 
+                                [class]="'p-2 ' + getDisplayData(location, date).cssClass"
+                                [title]="getDisplayData(location, date).timestamp">
+                                {{ getDisplayData(location, date).text }}
+                            </td>
+                        </tr>
                         <!-- Locations for this system -->
                         <tr *ngFor="let loc of group.locations" class="border-b last:border-b-0">
                             <td class="p-3 sticky left-0 bg-white z-10 text-left font-semibold text-slate-700 whitespace-nowrap pl-6">
