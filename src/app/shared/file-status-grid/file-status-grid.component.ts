@@ -155,81 +155,94 @@ export class FileStatusGridComponent implements OnInit {
     this.updateDateRange();
   }
   
+  private readonly timeFormat: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Kolkata'
+  };
+
+  private formatDateTime(date: Date): string {
+    return date.toLocaleTimeString('en-IN', this.timeFormat);
+  }
+
   getDisplayData(location: Location, date: Date): StatusDisplay {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dateStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    
     const mjd = this.dateToMjd(date);
     const key = `${location.sourceName}-${mjd}`;
     const status = this.statusMap.get(key);
     
-    const todayMjd = this.dateToMjd(new Date());
-    
-    if (status?.status === 'AVAILABLE') {
-        // Always use fileCreationTime for display
-        if (status.fileCreationTime) {
-            // Parse the ISO string which includes timezone information
-            // Add debug logging
-            console.log('Raw fileCreationTime:', status.fileCreationTime);
-            console.log('Raw lastCheckedTimestamp:', status.lastCheckedTimestamp);
+    // Handle existing files
+    if (status?.status === 'AVAILABLE' && status.fileCreationTime) {
+      try {
+        const creationTime = new Date(status.fileCreationTime);
+        
+        if (!isNaN(creationTime.getTime())) {
+          const timeStr = this.formatDateTime(creationTime);
+          
+          // For today's date, check if it's before expected time
+          if (dateStart.getTime() === todayStart.getTime()) {
+            const expectedHour = this.getExpectedHourForLocation(location);
+            const currentHour = creationTime.getHours();
             
-            let timeStr = 'Invalid Time';
-            let lastCheckedStr = 'Invalid Time';
-            
-            try {
-                const creationTime = new Date(status.fileCreationTime);
-                console.log('Parsed creationTime:', creationTime);
-                
-                if (!isNaN(creationTime.getTime())) {
-                    timeStr = creationTime.toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false,
-                        timeZone: 'Asia/Kolkata'
-                    });
-                }
-                
-                const lastCheckedTime = new Date(status.lastCheckedTimestamp);
-                console.log('Parsed lastCheckedTime:', lastCheckedTime);
-                
-                if (!isNaN(lastCheckedTime.getTime())) {
-                    lastCheckedStr = lastCheckedTime.toLocaleTimeString('en-IN', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                        timeZone: 'Asia/Kolkata'
-                    });
-                }
-            } catch (error) {
-                console.error('Error parsing dates:', error);
-                console.error('fileCreationTime:', status.fileCreationTime);
-                console.error('lastCheckedTimestamp:', status.lastCheckedTimestamp);
+            if (currentHour < expectedHour) {
+              return { 
+                text: 'Waiting', 
+                timestamp: `Expected at ${expectedHour}:00`,
+                cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+              };
             }
-            
-            return { 
-                text: timeStr,
-                timestamp: `Created: ${timeStr}\nLast Checked: ${lastCheckedStr}`,
-                cssClass: 'bg-green-200 text-green-800'
-            };
+          }
+          
+          return {
+            text: timeStr,
+            timestamp: `File Time: ${timeStr}`,
+            cssClass: 'bg-green-200 text-green-800'
+          };
         }
-        return { text: 'No Time', cssClass: 'bg-green-200 text-green-800' };
+      } catch (error) {
+        console.error('Error parsing dates:', error);
+      }
     }
     
-    if (mjd === todayMjd) {
-        return { text: 'Waiting', cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' };
-    }
-
-    if (mjd < todayMjd) {
-        return { text: '', cssClass: 'bg-red-200' };
+    // Handle today's files that haven't arrived yet
+    if (dateStart.getTime() === todayStart.getTime()) {
+      const expectedHour = this.getExpectedHourForLocation(location);
+      return { 
+        text: 'Waiting', 
+        timestamp: `Expected at ${expectedHour}:00`,
+        cssClass: 'bg-yellow-200 text-yellow-800 animate-pulse' 
+      };
     }
     
-    // For future dates
+    // Handle missing past files
+    if (dateStart < todayStart) {
+      return { text: '', cssClass: 'bg-red-200' };
+    }
+    
+    // Handle future dates
     return { text: '-', cssClass: 'bg-gray-100 text-gray-400' };
   }
-  
+
+  private getExpectedHourForLocation(location: Location): number {
+    // Set expected hours based on location
+    if (location.sourceName.startsWith('IRNPLI')) {
+      return 5; // Expected at 5 AM
+    } else if (location.sourceName.startsWith('GZLI2P')) {
+      return 5; // Expected at 5 AM
+    }
+    return 5; // Default expected time
+  }
+
   private dateToMjd(date: Date): number {
     const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     return Math.floor((utcDate.getTime() - this.mjdEpoch.getTime()) / (1000 * 60 * 60 * 24));
   }
-  
+
   private formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
   }
