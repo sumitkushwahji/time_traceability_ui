@@ -123,7 +123,14 @@ export class FileStatusGridComponent implements OnInit {
   fetchStatuses(): void {
     this.isLoading = true;
     const sources = this.locations.map(loc => loc.sourceName);
-    const startDate = this.formatDate(this.displayedDates[this.displayedDates.length - 1]);
+    
+    // Add one extra day to the start date to account for MJD offset
+    // Since getMjdForDate subtracts 1 day, we need to fetch data for that day too
+    const oldestDisplayedDate = this.displayedDates[this.displayedDates.length - 1];
+    const adjustedStartDate = new Date(oldestDisplayedDate);
+    adjustedStartDate.setDate(adjustedStartDate.getDate() - 1);
+    
+    const startDate = this.formatDate(adjustedStartDate);
     const endDate = this.formatDate(this.displayedDates[0]);
 
     this.satDataService.getFileStatuses(sources, startDate, endDate).subscribe(data => {
