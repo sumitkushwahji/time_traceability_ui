@@ -3,4 +3,9 @@ export const environment = {
   // apiBaseUrl: 'https://dev.rrsl.bharatsamay.org/time-traceability-service/api/data', // your prod API URL
   apiBaseUrl: 'http://localhost:6003/time-traceability-service/api', // Adjust this to your API base URL
     // apiBaseUrl: 'https://dev.rrsl.bharatsamay.org/time-traceability-service/api/data', // Adjust this to your API base URL
+  keycloak: {
+    url: 'https://bharatsamay.org/auth',
+    realm: 'npl-realm',
+    clientId: 'frontend'
+  }
 };

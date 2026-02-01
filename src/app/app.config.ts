@@ -2,7 +2,10 @@ import {
   ApplicationConfig,
   importProvidersFrom,
   provideZoneChangeDetection,
+  APP_INITIALIZER,
+  PLATFORM_ID,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { provideRouter, RouterModule } from '@angular/router';
 import { routes } from './app.routes';
 import {
@@ -10,6 +13,38 @@ import {
   withEventReplay,
 } from '@angular/platform-browser';
 import { provideHttpClient, withFetch } from '@angular/common/http';
+import { KeycloakService } from 'keycloak-angular';
+import { environment } from '../environments/environment';
+
+function initializeKeycloak(keycloak: KeycloakService, platformId: Object) {
+  return () => {
+    // Only initialize Keycloak in the browser
+    if (isPlatformBrowser(platformId)) {
+      console.log('Initializing Keycloak with config:', environment.keycloak);
+      return keycloak.init({
+        config: {
+          url: environment.keycloak.url,
+          realm: environment.keycloak.realm,
+          clientId: environment.keycloak.clientId,
+        },
+        initOptions: {
+          onLoad: 'login-required',
+          checkLoginIframe: false,
+        },
+      }).then((authenticated) => {
+        console.log('Keycloak initialized. Authenticated:', authenticated);
+        return authenticated;
+      }).catch((error) => {
+        console.error('Keycloak initialization failed', error);
+        throw error;
+      });
+    }
+    
+    // Return resolved promise for SSR
+    console.log('Skipping Keycloak initialization for SSR');
+    return Promise.resolve();
+  };
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,5 +62,14 @@ export const appConfig: ApplicationConfig = {
 
     // Enable the HttpClient to use the fetch API for SSR compatibility
     provideHttpClient(withFetch()),
+
+    // Keycloak service
+    KeycloakService,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeKeycloak,
+      multi: true,
+      deps: [KeycloakService, PLATFORM_ID],
+    },
   ],
 };
