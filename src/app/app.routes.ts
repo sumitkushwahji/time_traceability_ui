@@ -52,7 +52,7 @@ export const routes: Routes = [
         path: 'home', 
         component: HomeComponent,
         canActivate: [authGuard],
-        data: { roles: ['APP-USER'] }
+        data: { roles: ['RRSL-USER'] }
       },
       {
         path: 'ahmedabad',
