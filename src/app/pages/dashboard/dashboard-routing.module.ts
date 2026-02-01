@@ -13,7 +13,7 @@ const routes: Routes = [
     path: '',
     component: DashboardComponent,
     canActivate: [authGuard],
-    data: { roles: ['APP-USER'] },
+    data: { roles: ['RRSL-USER'] },
     children: [
       { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       // Home page uses original DataViewComponent with its own API calls
