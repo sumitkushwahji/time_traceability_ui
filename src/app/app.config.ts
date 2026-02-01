@@ -20,7 +20,6 @@ function initializeKeycloak(keycloak: KeycloakService, platformId: Object) {
   return () => {
     // Only initialize Keycloak in the browser
     if (isPlatformBrowser(platformId)) {
-      console.log('Initializing Keycloak with config:', environment.keycloak);
       return keycloak.init({
         config: {
           url: environment.keycloak.url,
@@ -28,20 +27,19 @@ function initializeKeycloak(keycloak: KeycloakService, platformId: Object) {
           clientId: environment.keycloak.clientId,
         },
         initOptions: {
-          onLoad: 'login-required',
+          onLoad: 'check-sso',
           checkLoginIframe: false,
+          redirectUri: window.location.origin + '/dashboard',
         },
-      }).then((authenticated) => {
-        console.log('Keycloak initialized. Authenticated:', authenticated);
+      }).then((authenticated: boolean) => {
         return authenticated;
-      }).catch((error) => {
+      }).catch((error: any) => {
         console.error('Keycloak initialization failed', error);
         throw error;
       });
     }
     
     // Return resolved promise for SSR
-    console.log('Skipping Keycloak initialization for SSR');
     return Promise.resolve();
   };
 }

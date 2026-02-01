@@ -6,11 +6,14 @@ import { DataViewComponent } from '../../shared/views/data-view/data-view.compon
 import { PlotViewComponent } from '../../shared/views/plot-view/plot-view.component';
 import { DataCompletenessDashboardComponent } from './views/data-completeness-dashboard/data-completeness-dashboard.component';
 import { FileAvailabilityComponent } from './views/file-availability/file-availability.component';
+import { authGuard } from '../../guards/auth.guard';
 
 const routes: Routes = [
   {
     path: '',
     component: DashboardComponent,
+    canActivate: [authGuard],
+    data: { roles: ['APP-USER'] },
     children: [
       { path: '', redirectTo: 'plot-view', pathMatch: 'full' },
       // Home page uses original DataViewComponent with its own API calls

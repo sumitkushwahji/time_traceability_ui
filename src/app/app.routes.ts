@@ -10,8 +10,27 @@ import { DrcComponent } from './pages/drc/drc.component';
 import { FileUploadDashboardComponent } from './shared/file-upload-dashboard/file-upload-dashboard.component';
 import { FileStatusGridComponent } from './shared/file-status-grid/file-status-grid.component';
 import { DocumentationComponent } from './pages/documentation/documentation.component';
+import { UnauthorizedComponent } from './pages/unauthorized/unauthorized.component';
+import { LandingComponent } from './pages/landing/landing.component';
+import { authGuard } from './guards/auth.guard';
+import { publicGuard } from './guards/public.guard';
+import { rootGuard } from './guards/root.guard';
 
 export const routes: Routes = [
+  {
+    path: 'landing',
+    component: LandingComponent,
+    canActivate: [publicGuard],
+  },
+  {
+    path: 'unauthorized',
+    component: UnauthorizedComponent,
+  },
+  {
+    path: '',
+    canActivate: [rootGuard],
+    children: [],
+  },
   {
     path: '',
     component: LayoutComponent,
@@ -29,7 +48,12 @@ export const routes: Routes = [
             (m) => m.DashboardModule
           ),
       },
-      { path: 'home', component: HomeComponent },
+      { 
+        path: 'home', 
+        component: HomeComponent,
+        canActivate: [authGuard],
+        data: { roles: ['APP-USER'] }
+      },
       {
         path: 'ahmedabad',
         loadChildren: () =>

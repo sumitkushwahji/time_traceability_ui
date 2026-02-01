@@ -1,0 +1,49 @@
+<div class="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+  <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+    <!-- Icon -->
+    <div class="mb-6">
+      <svg class="mx-auto h-24 w-24 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+        </path>
+      </svg>
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">
+      Access Denied
+    </h1>
+
+    <!-- Message -->
+    <p class="text-gray-600 mb-2">
+      Sorry, <strong>{{ username }}</strong>!
+    </p>
+    <p class="text-gray-600 mb-6">
+      You do not have the required permissions to access this page.
+      Please contact your administrator to request access.
+    </p>
+
+    <!-- Required Role Info -->
+    <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
+      <p class="text-sm text-red-800">
+        <strong>Required Group:</strong> APP-USER
+      </p>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex gap-4 justify-center">
+      <button 
+        (click)="goBack()"
+        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+      >
+        Go to Home
+      </button>
+      <button 
+        (click)="logout()"
+        class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+      >
+        Logout
+      </button>
+    </div>
+  </div>
+</div>

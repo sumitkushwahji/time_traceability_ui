@@ -37,15 +37,17 @@ export class AuthService {
   /**
    * Login
    */
-  login(): void {
-    this.keycloakService.login();
+  login(redirectUri?: string): void {
+    this.keycloakService.login({
+      redirectUri: redirectUri || window.location.origin + '/dashboard'
+    });
   }
 
   /**
    * Logout
    */
   logout(): void {
-    this.keycloakService.logout(window.location.origin);
+    this.keycloakService.logout(window.location.origin + '/landing');
   }
 
   /**

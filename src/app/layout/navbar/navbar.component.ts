@@ -21,7 +21,6 @@ export class NavbarComponent implements OnInit {
       const profile = await this.authService.getUserProfile();
       if (profile) {
         this.username = profile.username || profile.firstName || profile.email || 'User';
-        console.log('Logged in user:', this.username, profile);
       }
     }
   }
