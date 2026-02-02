@@ -20,14 +20,10 @@ export class NavbarComponent implements OnInit {
       // Load user profile first
       const profile = await this.authService.getUserProfile();
       if (profile) {
-        // Prefer username, otherwise use firstName + lastName
-        if (profile.username) {
-          this.username = profile.username;
-        } else {
-          const firstName = profile.firstName || '';
-          const lastName = profile.lastName || '';
-          this.username = `${firstName} ${lastName}`.trim() || 'User';
-        }
+        // Display firstName and lastName
+        const firstName = profile.firstName || '';
+        const lastName = profile.lastName || '';
+        this.username = `${firstName} ${lastName}`.trim() || 'User';
       }
     }
   }
